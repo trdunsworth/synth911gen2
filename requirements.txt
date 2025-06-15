@@ -1,0 +1,5 @@
+pandas>=2.2.0
+numpy>=2.2.0
+Faker>=10.0.0
+PyInquirer==1.0.3
+prompt-toolkit<2.0.0,>=1.0.14
