@@ -9,6 +9,7 @@ from faker.providers import DynamicProvider
 import argparse
 import re
 import sys
+from shared.constants import DEFAULT_LOCALE, validate_locale
 
 # Try to import PyInquirer, but provide fallback if it's not available
 try:
@@ -57,8 +58,6 @@ def sanitize_cli():
 # Note: This function is for testing sanitization only
 # The actual entry point is at the bottom of the file
 
-# Default to American English, but allow for other locales
-DEFAULT_LOCALE = "en_US"
 fake = None  # Will be initialized in generate_911_data with the specified locale
 
 # Law enforcement problems with their associated priority levels
@@ -255,6 +254,11 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
 
         This needs to be run with the following setup: python synth911gen.py -n 10000 -s 2024-01-01 -e 2024-12-31 -o computer_aided_dispatch.csv
     """
+    # Validate locale before proceeding
+    if not validate_locale(locale):
+        print(f"Warning: Unsupported locale '{locale}'. Falling back to {DEFAULT_LOCALE}")
+        locale = DEFAULT_LOCALE
+    
     # Initialize Faker with the specified locale
     global fake
     fake = Faker(locale)

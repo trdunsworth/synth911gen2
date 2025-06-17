@@ -6,36 +6,32 @@ import subprocess
 from datetime import datetime
 import re
 import argparse
+from shared.constants import DEFAULT_LOCALE, SUPPORTED_LOCALES, validate_locale
 
-# Common Faker locales with their display names
-LOCALE_OPTIONS = [
-    ("en_US", "English (US)"),
-    ("en_GB", "English (UK)"),
-    ("fr_FR", "French"),
-    ("de_DE", "German"),
-    ("es_ES", "Spanish"),
-    ("it_IT", "Italian"),
-    ("pt_BR", "Portuguese (Brazil)"),
-    ("nl_NL", "Dutch"),
-    ("ja_JP", "Japanese"),
-    ("zh_CN", "Chinese"),
-    ("ru_RU", "Russian"),
-    ("ar_EG", "Arabic"),
-    ("hi_IN", "Hindi"),
-    ("ko_KR", "Korean"),
-    ("sv_SE", "Swedish"),
-    ("fi_FI", "Finnish"),
-    ("no_NO", "Norwegian"),
-    ("da_DK", "Danish"),
-    ("cs_CZ", "Czech"),
-    ("pl_PL", "Polish")
-]
+# Create a mapping of locales to their descriptions
+LOCALE_DESCRIPTIONS = {
+    "en_US": "American English",
+    "en_GB": "British English",
+    "fr_FR": "French",
+    "de_DE": "German",
+    "es_ES": "Spanish",
+    "it_IT": "Italian",
+    "pt_BR": "Brazilian Portuguese",
+    "nl_NL": "Dutch",
+    "pl_PL": "Polish",
+    "ru_RU": "Russian",
+    "ja_JP": "Japanese",
+    "ko_KR": "Korean",
+    "zh_CN": "Chinese (Simplified)",
+    "ar_SA": "Arabic",
+}
 
 def print_locales():
     """Print available locales with their descriptions"""
     print("\nAvailable locales:")
-    for code, description in LOCALE_OPTIONS:
-        print(f"  {code:<8} - {description}")
+    for locale in SUPPORTED_LOCALES:
+        description = LOCALE_DESCRIPTIONS.get(locale, "")
+        print(f"  {locale:<8} - {description}")
     print()
 
 def validate_date(date_str):
@@ -60,6 +56,23 @@ def sanitize_input(user_input):
     if not re.match(pattern, user_input):
         raise ValueError("Input contains invalid characters.")
     return user_input
+
+def verify_locale(locale):
+    """
+    Verify if the locale is supported and print appropriate warnings
+    
+    Args:
+        locale (str): The locale to verify
+        
+    Returns:
+        bool: True if the locale is supported, False otherwise
+    """
+    if not validate_locale(locale):
+        print(f"Warning: '{locale}' is not in the list of common locales.")
+        print("It may still work if it's a valid Faker locale, but results may vary.")
+        print_locales()
+        return False
+    return True
 
 def generate_data_cli():
     """Command-line interface for generating data"""
@@ -107,8 +120,7 @@ def generate_data_cli():
         return
     
     # Check if locale is valid
-    valid_locales = [code for code, _ in LOCALE_OPTIONS]
-    if args.locale not in valid_locales:
+    if not validate_locale(args.locale):
         print(f"Warning: '{args.locale}' is not in the list of common locales.")
         print("It may still work if it's a valid Faker locale, but results may vary.")
         print_locales()
@@ -328,7 +340,7 @@ def main():
             import tkinter as tk
             
             root = tk.Tk()
-            app = Synth911GenGUI(root)
+            Synth911GenGUI(root)
             root.mainloop()
         except Exception as e:
             print(f"Error launching GUI: {str(e)}")

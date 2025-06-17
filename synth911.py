@@ -12,6 +12,38 @@ import os
 import sys
 import subprocess
 
+def validate_choice(choice):
+    """Validate user menu choice"""
+    return choice in ["1", "2", "3"]
+
+def sanitize_cli_args(args_str):
+    """Sanitize command line arguments to prevent injection"""
+    # Split while preserving quoted strings
+    import shlex
+    try:
+        args = shlex.split(args_str)
+        # Basic sanitization - only allow alphanumeric, hyphen, space
+        return [arg for arg in args if arg.replace("-", "").replace(" ", "").isalnum()]
+    except ValueError as e:
+        print(f"Error parsing arguments: {str(e)}")
+        return []
+
+def run_subprocess(cmd, check=False):
+    """Run a subprocess with proper error handling"""
+    try:
+        result = subprocess.run(cmd, check=check, capture_output=True, text=True)
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr, file=sys.stderr)
+        return result
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed with exit code {e.returncode}: {str(e)}")
+        return None
+    except Exception as e:
+        print(f"Error running command: {str(e)}")
+        return None
+
 def main():
     """Main entry point for the application"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,13 +56,10 @@ def main():
         
         # Try running the GUI version
         print("Attempting to launch GUI version...")
-        result = subprocess.run(
-            [sys.executable, os.path.join(script_dir, "synthgui_headless.py")],
-            check=False
-        )
+        result = run_subprocess([sys.executable, os.path.join(script_dir, "synthgui_headless.py")])
         
         # If the GUI version exited successfully, we're done
-        if result.returncode == 0:
+        if result and result.returncode == 0:
             return
         
         # If we get here, the GUI version failed
@@ -40,42 +69,62 @@ def main():
         print("Falling back to headless version.")
     
     # If we get here, we need to run the headless version
-    print("\nSynth911 - Headless Mode")
-    print("======================")
-    print("1. Interactive mode (guided prompts)")
-    print("2. Command-line mode (pass arguments)")
-    print("3. Exit")
-    
-    choice = input("\nEnter your choice (1-3): ")
-    
-    if choice == "1":
-        # Run interactive mode
-        subprocess.run(
-            [sys.executable, os.path.join(script_dir, "synthgui_headless.py"), "--interactive"],
-            check=False
-        )
-    elif choice == "2":
-        # Show help for command-line mode
-        print("\nCommand-line mode usage:")
-        subprocess.run(
-            [sys.executable, os.path.join(script_dir, "synthgui_headless.py"), "--cli", "--help"],
-            check=False
-        )
+    while True:
+        print("\nSynth911 - Headless Mode")
+        print("======================")
+        print("1. Interactive mode (guided prompts)")
+        print("2. Command-line mode (pass arguments)")
+        print("3. Exit")
         
-        # Ask if they want to continue
-        cont = input("\nDo you want to continue with command-line mode? (y/n): ")
-        if cont.lower() == "y":
-            # Get the command-line arguments
-            args = input("\nEnter command-line arguments: ")
+        choice = input("\nEnter your choice (1-3): ")
+        
+        if not validate_choice(choice):
+            print("Invalid choice. Please enter 1, 2, or 3.")
+            continue
             
-            # Split the arguments and run the command
-            arg_list = args.split()
-            subprocess.run(
-                [sys.executable, os.path.join(script_dir, "synthgui_headless.py"), "--cli"] + arg_list,
-                check=False
+        if choice == "3":
+            print("Exiting...")
+            break
+            
+        if choice == "1":
+            # Run interactive mode
+            result = run_subprocess(
+                [sys.executable, os.path.join(script_dir, "synthgui_headless.py"), "--interactive"]
             )
-    else:
-        print("Exiting...")
+            if not result:
+                print("Failed to run interactive mode.")
+            break
+                
+        elif choice == "2":
+            # Show help for command-line mode
+            print("\nCommand-line mode usage:")
+            run_subprocess(
+                [sys.executable, os.path.join(script_dir, "synthgui_headless.py"), "--cli", "--help"]
+            )
+            
+            # Ask if they want to continue
+            while True:
+                cont = input("\nDo you want to continue with command-line mode? (y/n): ").lower()
+                if cont in ['y', 'n']:
+                    break
+                print("Please enter 'y' or 'n'")
+            
+            if cont == "y":
+                # Get and validate the command-line arguments
+                args = input("\nEnter command-line arguments: ")
+                sanitized_args = sanitize_cli_args(args)
+                
+                if not sanitized_args:
+                    print("Invalid or empty arguments provided.")
+                    continue
+                    
+                # Run the command with sanitized arguments
+                result = run_subprocess(
+                    [sys.executable, os.path.join(script_dir, "synthgui_headless.py"), "--cli"] + sanitized_args
+                )
+                if not result:
+                    print("Failed to run command-line mode.")
+            break
 
 if __name__ == "__main__":
     main()
