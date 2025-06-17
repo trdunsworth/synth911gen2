@@ -8,11 +8,35 @@ from datetime import datetime
 import subprocess
 import re
 
+# Common Faker locales with their display names
+LOCALE_OPTIONS = [
+    ("en_US", "English (US)"),
+    ("en_GB", "English (UK)"),
+    ("fr_FR", "French"),
+    ("de_DE", "German"),
+    ("es_ES", "Spanish"),
+    ("it_IT", "Italian"),
+    ("pt_BR", "Portuguese (Brazil)"),
+    ("nl_NL", "Dutch"),
+    ("ja_JP", "Japanese"),
+    ("zh_CN", "Chinese"),
+    ("ru_RU", "Russian"),
+    ("ar_EG", "Arabic"),
+    ("hi_IN", "Hindi"),
+    ("ko_KR", "Korean"),
+    ("sv_SE", "Swedish"),
+    ("fi_FI", "Finnish"),
+    ("no_NO", "Norwegian"),
+    ("da_DK", "Danish"),
+    ("cs_CZ", "Czech"),
+    ("pl_PL", "Polish")
+]
+
 class Synth911GenGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Synth911Gen - 911 Data Generator")
-        self.root.geometry("600x450")
+        self.root.geometry("600x500")  # Increased height to accommodate the new field
         self.root.resizable(True, True)
         
         # Set the icon if available
@@ -56,19 +80,36 @@ class Synth911GenGUI:
         num_names_entry = ttk.Entry(main_frame, textvariable=self.num_names_var, width=15)
         num_names_entry.grid(row=4, column=1, sticky="w", pady=5)
         
+        # Locale selection
+        ttk.Label(main_frame, text="Locale:").grid(row=5, column=0, sticky="w", pady=5)
+        self.locale_var = tk.StringVar(value="en_US")
+        
+        # Create dictionaries for mapping between display names and locale codes
+        self.locale_display_to_code = {display: code for code, display in LOCALE_OPTIONS}
+        self.locale_code_to_display = {code: display for code, display in LOCALE_OPTIONS}
+        
+        # Create the dropdown with display names
+        self.locale_display_var = tk.StringVar(value=self.locale_code_to_display["en_US"])
+        locale_dropdown = ttk.Combobox(main_frame, textvariable=self.locale_display_var, width=20, state="readonly")
+        locale_dropdown['values'] = [display for _, display in LOCALE_OPTIONS]
+        locale_dropdown.grid(row=5, column=1, sticky="w", pady=5)
+        
+        # Bind the selection event to update the locale_var with the actual locale code
+        locale_dropdown.bind('<<ComboboxSelected>>', self.update_locale_code)
+        
         # Output file
-        ttk.Label(main_frame, text="Output File:").grid(row=5, column=0, sticky="w", pady=5)
+        ttk.Label(main_frame, text="Output File:").grid(row=6, column=0, sticky="w", pady=5)
         self.output_file_var = tk.StringVar(value="computer_aided_dispatch.csv")
         output_file_entry = ttk.Entry(main_frame, textvariable=self.output_file_var, width=30)
-        output_file_entry.grid(row=5, column=1, sticky="ew", pady=5)
+        output_file_entry.grid(row=6, column=1, sticky="ew", pady=5)
         
         # Browse button
         browse_button = ttk.Button(main_frame, text="Browse...", command=self.browse_output_file)
-        browse_button.grid(row=5, column=2, sticky="w", padx=(5, 0), pady=5)
+        browse_button.grid(row=6, column=2, sticky="w", padx=(5, 0), pady=5)
         
         # Status frame
         status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
-        status_frame.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(20, 10))
+        status_frame.grid(row=7, column=0, columnspan=3, sticky="ew", pady=(20, 10))
         
         # Status text
         self.status_text = tk.Text(status_frame, height=10, width=60, wrap=tk.WORD)
@@ -82,7 +123,7 @@ class Synth911GenGUI:
         
         # Buttons frame
         buttons_frame = ttk.Frame(main_frame)
-        buttons_frame.grid(row=7, column=0, columnspan=3, pady=(10, 0))
+        buttons_frame.grid(row=8, column=0, columnspan=3, pady=(10, 0))
         
         # Generate button
         generate_button = ttk.Button(buttons_frame, text="Generate Data", command=self.generate_data)
@@ -92,6 +133,12 @@ class Synth911GenGUI:
         exit_button = ttk.Button(buttons_frame, text="Exit", command=self.root.destroy)
         exit_button.pack(side=tk.LEFT, padx=5)
         
+    def update_locale_code(self, event):
+        """Update the locale variable with the correct code when a display name is selected"""
+        selected_display = self.locale_display_var.get()
+        if selected_display in self.locale_display_to_code:
+            self.locale_var.set(self.locale_display_to_code[selected_display])
+    
     def browse_output_file(self):
         """Open a file dialog to select the output file location"""
         filename = filedialog.asksaveasfilename(
@@ -189,12 +236,14 @@ class Synth911GenGUI:
             start_date = self.sanitize_input(self.start_date_var.get())
             end_date = self.sanitize_input(self.end_date_var.get())
             num_names = self.sanitize_input(self.num_names_var.get())
+            locale = self.sanitize_input(self.locale_var.get())
             output_file = self.sanitize_input(self.output_file_var.get())
             
             # Update status
             self.update_status("Starting data generation...")
             self.update_status(f"Number of records: {num_records}")
             self.update_status(f"Date range: {start_date} to {end_date}")
+            self.update_status(f"Locale: {locale}")
             self.update_status(f"Output file: {output_file}")
             
             # Build the command
@@ -206,6 +255,7 @@ class Synth911GenGUI:
                 "-s", start_date,
                 "-e", end_date,
                 "--num-names", num_names,
+                "-l", locale,
                 "-o", output_file
             ]
             

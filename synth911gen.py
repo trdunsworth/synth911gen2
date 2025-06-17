@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import pandas as pd
+import fireducks.pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import random
@@ -57,109 +57,215 @@ def sanitize_cli():
 # Note: This function is for testing sanitization only
 # The actual entry point is at the bottom of the file
 
-fake = Faker("en_US")
+# Default to American English, but allow for other locales
+DEFAULT_LOCALE = "en_US"
+fake = None  # Will be initialized in generate_911_data with the specified locale
 
+# Law enforcement problems with their associated priority levels
+# Priority 1: Immediate response, life-threatening
+# Priority 2: Urgent response, potential for harm
+# Priority 3: Prompt response, no immediate danger
+# Priority 4: Routine response, minor issues
+# Priority 5: Non-urgent, administrative or delayed response
+
+LAW_PROBLEMS = [
+    # Priority 1 (Immediate response, life-threatening)
+    ("WEAPON VIOL GUN IN PROG", 1),
+    ("ALARM RESIDENTIAL NIGHTIME", 1),
+    ("ROBBERY IN PROGRESS", 1),
+    ("SHOOTING", 1),
+    ("STABBING", 1),
+    ("OFFICER NEEDS ASSISTANCE", 1),
+    ("HOSTAGE SITUATION", 1),
+    ("SUICIDAL SUBJECT", 1),
+    
+    # Priority 2 (Urgent response, potential for harm)
+    ("DOMESTIC VIOL NO INJ", 2),
+    ("DOMESTIC VIOL WITH INJ", 2),
+    ("DWI - DRUNK/INTOX DRIVER", 2),
+    ("DISORDERLY CONDUCT", 2),
+    ("911 HANG UP", 2),
+    ("ASSAULT", 2),
+    ("BURGLARY IN PROGRESS", 2),
+    ("SUSPICIOUS PERSON WITH WEAPON", 2),
+    
+    # Priority 3 (Prompt response, no immediate danger)
+    ("SUSPICIOUS EVENT", 3),
+    ("SUSPICIOUS PERSON", 3),
+    ("SUSPICIOUS VEHICLE", 3),
+    ("TRESPASSING", 3),
+    ("LARCENY IN PROGRESS", 3),
+    ("TRAFFIC ACCIDENT NO INJURY", 3),
+    ("ALARM COMMERCIAL", 3),
+    
+    # Priority 4 (Routine response, minor issues)
+    ("NOISE COMPLAINT IN PROG", 4),
+    ("NOISE COMPLAINT DELAY", 4),
+    ("PARKING COMPLAINT", 4),
+    ("TRAFFIC STOP", 4),
+    ("DISABLED MOTORIST", 4),
+    ("PUBLIC SERVICE - LAW", 4),
+    ("ASSIST CITIZEN", 4),
+    
+    # Priority 5 (Non-urgent, administrative or delayed)
+    ("PROPERTY LOST TRU", 5),
+    ("POLICE INFORMATION", 5),
+    ("FOLLOW UP", 5),
+    ("LARCENY REPORT", 5),
+    ("FRAUD REPORT", 5),
+    ("VANDALISM REPORT", 5),
+    ("MENTAL HEALTH", 5),
+    ("DRUG COMPLAINT", 5),
+    ("FLAG DOWN", 5),
+    ("GLA", 5),
+]
+
+# Create the DynamicProvider with just the problem names
 law_problem_provider = DynamicProvider(
     provider_name="law_problem",
-    elements=[
-        "TRAFFIC STOP",
-        "PARKING COMPLAINT",
-        "DISORDERLY CONDUCT",
-        "SUSPICIOUS EVENT",
-        "MVC",
-        "POLICE INFORMATION",
-        "ALARM COMMERCIAL",
-        "DOMESTIC VIOL",
-        "TRESPASSING",
-        "ASSIST CITIZEN",
-        "PUBLIC SERVICE - LAW",
-        "MENTAL HEALTH",
-        "NOISE COMPLAINT",
-        "LARCENY",
-        "DISABLED MOTORIST",
-        "ALARM RESIDENTIAL",
-        "DRUG COMPLAINT",
-        "FLAG DOWN",
-        "ASSAULT",
-        "GLA",
-    ],
+    elements=[problem for problem, _ in LAW_PROBLEMS]
 )
 
+# Fire problems with their associated priority levels
+# Priority 1: Immediate response, life-threatening
+# Priority 2: Urgent response, potential for harm
+# Priority 3: Prompt response, no immediate danger
+# Priority 4: Routine response, minor issues
+# Priority 5: Non-urgent, administrative or delayed response
+
+FIRE_PROBLEMS = [
+    # Priority 1 (Immediate response, life-threatening)
+    ("RESIDENTIAL BUILDING FIRE", 1),
+    ("HIGHRISE BUILDING FIRE", 1),
+    ("COMMERCIAL BUILDING FIRE", 1),
+    ("ENTRAPMENT", 1),
+    ("MVC SCHOOL BUS", 1),
+    ("HAZMAT MAJOR", 1),
+    ("STRUCTURE COLLAPSE", 1),
+    
+    # Priority 2 (Urgent response, potential for harm)
+    ("MVC AUTO", 2),
+    ("GAS LEAK", 2),
+    ("CO ALARM", 2),
+    ("OUTSIDE FIRE", 2),
+    ("APPLIANCE FIRE", 2),
+    ("MVC MOTORCYCLE", 2),
+    ("WIRES DOWN", 2),
+    ("HAZMAT", 2),
+    
+    # Priority 3 (Prompt response, no immediate danger)
+    ("FIRE ALARM", 3),
+    ("ELEVATOR", 3),
+    ("ODOR OF SMOKE", 3),
+    ("WATER LEAK", 3),
+    ("SMOKE DETECTOR", 3),
+    
+    # Priority 4 (Routine response, minor issues)
+    ("PUBLIC SERVICE - FIRE", 4),
+    ("LOCKOUT", 4),
+    ("ASSIST CITIZEN - FIRE", 4),
+    ("ANIMAL RESCUE", 4),
+    
+    # Priority 5 (Non-urgent, administrative or delayed)
+    ("FIRE INSPECTION", 5),
+    ("FIRE PREVENTION", 5),
+    ("FIRE EDUCATION", 5),
+    ("SMOKE DETECTOR INSTALLATION", 5),
+]
+
+# Create the DynamicProvider with just the problem names
 fire_problem_provider = DynamicProvider(
     provider_name="fire_problem",
-    elements=[
-        "FIRE ALARM",
-        "ELEVATOR",
-        "MVC AUTO",
-        "GAS LEAK",
-        "PUBLIC SERVICE - FIRE",
-        "OUTSIDE FIRE",
-        "CO ALARM",
-        "RESIDENTIAL BUILDING FIRE",
-        "HIGHRISE BUILDING FIRE",
-        "COMMERCIAL BUILDING FIRE",
-        "ODOR OF SMOKE",
-        "APPLIANCE FIRE",
-        "LOCKOUT",
-        "ENTRAPMENT",
-        "MVC SCHOOL BUS",
-        "WIRES DOWN",
-        "HAZMAT",
-        "MVC MOTORCYCLE",
-    ],
+    elements=[problem for problem, _ in FIRE_PROBLEMS]
 )
 
+# EMS problems with their associated priority levels
+# Priority 1: Immediate response, life-threatening
+# Priority 2: Urgent response, potential for harm
+# Priority 3: Prompt response, no immediate danger
+# Priority 4: Routine response, minor issues
+# Priority 5: Non-urgent, administrative or delayed response
+
+EMS_PROBLEMS = [
+    # Priority 1 (Immediate response, life-threatening)
+    ("CARDIAC ARREST ALS", 1),
+    ("UNCONSCIOUS ALS", 1),
+    ("ALTERED LOC ALS", 1),
+    ("STROKE ALS", 1),
+    ("MUTUAL ALS", 1),
+    ("ALLERGIC REACTION ALS", 1),
+    ("OVERDOSE ALS", 1),
+    ("TRAUMATIC INJURY ALS", 1),
+    ("DROWNING", 1),
+    
+    # Priority 2 (Urgent response, potential for harm)
+    ("TROUBLE BREATHING ALS", 2),
+    ("CHEST PAIN ALS", 2),
+    ("HEART PROBLEMS ALS", 2),
+    ("SEIZURE ALS", 2),
+    ("DIABETIC EMERGENCY ALS", 2),
+    ("ASSAULT ALS", 2),
+    ("PSYCHIATRIC EMERGENCY ALS", 2),
+    ("ALS EMERGENCY", 2),
+    
+    # Priority 3 (Prompt response, no immediate danger)
+    ("BLS EMERGENCY", 3),
+    ("FALL BLS", 3),
+    ("INJURED PERSON BLS", 3),
+    ("BACK PAIN BLS", 3),
+    ("HEADACHE BLS", 3),
+    ("SICK PERSON BLS", 3),
+    
+    # Priority 4 (Routine response, minor issues)
+    ("PUBLIC SERICE EMS", 4),
+    ("MINOR MEDICAL", 4),
+    ("ASSIST CITIZEN - EMS", 4),
+    
+    # Priority 5 (Non-urgent, administrative or delayed)
+    ("MEDICAL ALARM", 5),
+    ("ROUTINE TRANSPORT", 5),
+    ("MENTAL HEALTH ALS", 5),
+    ("WELFARE CHECK", 5),
+]
+
+# Create the DynamicProvider with just the problem names
 ems_problem_provider = DynamicProvider(
     provider_name="ems_problem",
-    elements=[
-        "ALS EMERGENCY",
-        "BLS EMERGENCY",
-        "TROUBLE BREATHING ALS",
-        "FALL BLS",
-        "PUBLIC SERICE EMS",
-        "CHEST PAIN ALS",
-        "CARDIAC ARREST ALS",
-        "ALTERED LOC ALS",
-        "UNCONSCIOUS ALS",
-        "HEART PROBLEMS ALS",
-        "SEIZURE ALS",
-        "STROKE ALS",
-        "INJURED PERSON BLS",
-        "BACK PAIN BLS",
-        "MENTAL HEALTH ALS",
-        "ASSAULT ALS",
-        "DIABETIC EMERGENCY ALS",
-        "OVERDOSE ALS",
-        "HEADACHE BLS",
-        "ALLERGIC REACTION ALS",
-        "PSYCHIATRIC EMERGENCY ALS",
-    ],
+    elements=[problem for problem, _ in EMS_PROBLEMS]
 )
 
-address_list = [fake.unique.street_address() for _ in range(2500)]
+# Street address provider will be created in the generate_911_data function
+# after Faker is initialized with the specified locale
 
-
-street_address_provider = DynamicProvider(
-    provider_name="street_address", elements=address_list
-)
-
-# TODO: Add the ability to switch the faker provider to a different locale.
 # TODO: Hook this to a web interface to allow users to generate data on demand.
 
 
-def generate_911_data(num_records=10000, start_date=None, end_date=None, num_names=8):
+def generate_911_data(num_records=10000, start_date=None, end_date=None, num_names=8, locale=DEFAULT_LOCALE):
     """
     This function generates synthetic 911 dispatch data for a given number of records. This will output a CSV file with the generated data.
     The data includes various fields such as call_id, agency, event_time, day_of_year, week_no, hour, day_night, dow, shift, shift_part, problem, address, priority_number, call_taker, call_reception, dispatcher, queue_time, dispatch_time, phone_time, ack_time, enroute_time, on_scene_time, process_time, total_time and time stamps for various events.
 
     Args:
-        num_records (int, optional): _description_. Defaults to 10000.
-
-        TODO: Add the ability to switch the faker provider to a different locale.
-        This will allow for generating data in different languages or formats based on the user's needs.
+        num_records (int, optional): Number of records to generate. Defaults to 10000.
+        start_date (str, optional): Start date in YYYY-MM-DD format. Defaults to "2024-01-01".
+        end_date (str, optional): End date in YYYY-MM-DD format. Defaults to "2024-12-31".
+        num_names (int, optional): Number of names to generate per shift. Defaults to 8.
+        locale (str, optional): Faker locale for generating localized data. Defaults to "en_US".
+                               Examples: "en_GB" (British English), "fr_FR" (French), "de_DE" (German), etc.
 
         This needs to be run with the following setup: python synth911gen.py -n 10000 -s 2024-01-01 -e 2024-12-31 -o computer_aided_dispatch.csv
     """
+    # Initialize Faker with the specified locale
+    global fake
+    fake = Faker(locale)
+    
+    # Generate address list with the specified locale
+    address_list = [fake.unique.street_address() for _ in range(2500)]
+    
+    # Create street address provider
+    street_address_provider = DynamicProvider(
+        provider_name="street_address", elements=address_list
+    )
 
     def generate_names(num_names=8):
         """
@@ -187,13 +293,6 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     # Map agency to prefix
     agency_prefix = {"LAW": "L", "EMS": "M", "FIRE": "F"}
 
-    # Generate call_id column with agency-specific prefix
-    call_ids_full = [
-        f"25-{agency_prefix[agency]}{fake.bothify(text='######')}"
-        for agency in agency_choices
-    ]
-
-    # Generate datetime column with random dates across 2024-2025
     # Set default start and end dates if not provided
     if start_date is None:
         start_date = "2024-01-01"
@@ -201,20 +300,39 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         end_date = "2024-12-31"
 
     # Convert start_date and end_date to datetime objects
-    start_date = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date = datetime.strptime(end_date, "%Y-%m-%d")
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
+    # Get the year from start date for call_id prefix
+    year_suffix = str(start_date_dt.year)[-2:]
+
+    # Determine starting numbers for each agency
+    def get_start_number():
+        if start_date_dt.month == 1 and start_date_dt.day == 1:
+            return 1
+        else:
+            # Generate a random starting number between 1000 and 100000
+            return random.randint(1000, 100000)
+
+    # Generate sequential numbers for each agency
+    agency_counters = {
+        "L": get_start_number(),
+        "M": get_start_number(),
+        "F": get_start_number()
+    }
+    call_ids_full = []
+    
+    for agency in agency_choices:
+        prefix = agency_prefix[agency]
+        call_id = f"{year_suffix}-{prefix}{agency_counters[prefix]:06d}"
+        call_ids_full.append(call_id)
+        agency_counters[prefix] += 1
 
     # Generate random datetimes within the specified range
-    date_range = int((end_date - start_date).total_seconds())
+    date_range = int((end_date_dt - start_date_dt).total_seconds())
     random_seconds = np.random.randint(0, date_range, size=num_records)
     datetimes_full = [
-        start_date + timedelta(seconds=int(sec)) for sec in sorted(random_seconds)
-    ]
-
-    random_seconds = np.random.randint(0, date_range, size=num_records)
-    # Convert numpy integers to Python integers before using in timedelta
-    datetimes_full = [
-        start_date + timedelta(seconds=int(sec)) for sec in sorted(random_seconds)
+        start_date_dt + timedelta(seconds=int(sec)) for sec in sorted(random_seconds)
     ]
 
     # Create DataFrame
@@ -225,6 +343,9 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
             "event_time": datetimes_full,
         }
     )
+
+    # Sort the DataFrame by event_time to ensure chronological order
+    df_full = df_full.sort_values("event_time").reset_index(drop=True)
 
     # Add day_of_year column
     df_full["day_of_year"] = df_full["event_time"].dt.dayofyear
@@ -352,8 +473,31 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
 
     df_full["address"] = [fake.street_address() for _ in range(len(df_full))]
 
-    # Add priority_number column with random integers between 1 and 5
-    df_full["priority_number"] = np.random.randint(1, 6, size=len(df_full))
+    # Create dictionaries to map problems to their priority numbers
+    law_priority_map = {problem: priority for problem, priority in LAW_PROBLEMS}
+    fire_priority_map = {problem: priority for problem, priority in FIRE_PROBLEMS}
+    ems_priority_map = {problem: priority for problem, priority in EMS_PROBLEMS}
+    
+    # Function to assign priority number based on agency and problem
+    def assign_priority(row):
+        agency = row["agency"]
+        problem = row["problem"]
+        
+        if agency == "LAW":
+            # Use the law priority map, default to 3 if problem not found
+            return law_priority_map.get(problem, 3)
+        elif agency == "FIRE":
+            # Use the fire priority map, default to 3 if problem not found
+            return fire_priority_map.get(problem, 3)
+        elif agency == "EMS":
+            # Use the ems priority map, default to 3 if problem not found
+            return ems_priority_map.get(problem, 3)
+        else:
+            # Default priority for unknown agency
+            return 3
+    
+    # Add priority_number column based on the problem type and agency
+    df_full["priority_number"] = df_full.apply(assign_priority, axis=1)
 
     # Define a function to assign call_taker based on shift
     def assign_call_taker(shift):
@@ -556,6 +700,12 @@ def main():
             },
             {
                 'type': 'input',
+                'name': 'locale',
+                'message': 'Enter the Faker locale (e.g., en_US, en_GB, fr_FR, de_DE):',
+                'default': DEFAULT_LOCALE
+            },
+            {
+                'type': 'input',
                 'name': 'output_file',
                 'message': 'Enter the output file path:',
                 'default': 'computer_aided_dispatch.csv'
@@ -568,6 +718,7 @@ def main():
         start_date = answers['start_date']
         end_date = answers['end_date']
         num_names = int(answers['num_names'])
+        locale = answers['locale']
         output_file = answers['output_file']
     else:
         # Command-line argument mode
@@ -580,6 +731,8 @@ def main():
                             help='End date in YYYY-MM-DD format (default: 2024-12-31)')
         parser.add_argument('--num-names', type=int, default=8,
                             help='Number of names to generate per shift (default: 8)')
+        parser.add_argument('-l', '--locale', type=str, default=DEFAULT_LOCALE,
+                            help=f'Faker locale for generating localized data (default: {DEFAULT_LOCALE})')
         parser.add_argument('-o', '--output-file', type=str, default='computer_aided_dispatch.csv',
                             help='Output file path (default: computer_aided_dispatch.csv)')
         
@@ -597,6 +750,7 @@ def main():
         start_date = args.start_date
         end_date = args.end_date
         num_names = args.num_names
+        locale = args.locale
         output_file = args.output_file
 
     # Generate data with specified parameters
@@ -604,7 +758,8 @@ def main():
         num_records=num_records,
         start_date=start_date,
         end_date=end_date,
-        num_names=num_names
+        num_names=num_names,
+        locale=locale
     )
 
     # Save the DataFrame to a CSV file
