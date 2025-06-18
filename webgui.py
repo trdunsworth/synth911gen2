@@ -48,14 +48,17 @@ def index():
             output_file = request.form.get('output_file', 'computer_aided_dispatch.csv')
             agencies = request.form.get('agencies', '')
 
-            # Sanitize inputs
+            # Sanitize required inputs
             sanitize_input(num_records)
             sanitize_input(start_date)
             sanitize_input(end_date)
             sanitize_input(num_names)
             sanitize_input(locale)
             sanitize_input(output_file)
-            sanitize_input(agencies)
+
+            # Only sanitize agencies if it's not empty
+            if agencies.strip():
+                sanitize_input(agencies)
 
             # Build command
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synth911gen.py")
@@ -70,7 +73,8 @@ def index():
                 "-o", output_file
             ]
 
-            if agencies:
+            # Only add agencies argument if it's not empty
+            if agencies.strip():
                 cmd.extend(["-a", agencies])
 
             # Run process
