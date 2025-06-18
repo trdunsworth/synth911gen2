@@ -8,6 +8,24 @@ import re
 import argparse
 from shared.constants import DEFAULT_LOCALE, SUPPORTED_LOCALES, validate_locale
 
+# Common Faker locales with their display names
+LOCALE_OPTIONS = [
+    ("en_US", "English (US)"),
+    ("en_GB", "English (UK)"),
+    ("fr_FR", "French"),
+    ("de_DE", "German"),
+    ("es_ES", "Spanish"),
+    ("it_IT", "Italian"),
+    ("pt_BR", "Portuguese (Brazil)"),
+    ("nl_NL", "Dutch"),
+    ("pl_PL", "Polish"),
+    ("ru_RU", "Russian"),
+    ("ja_JP", "Japanese"),
+    ("ko_KR", "Korean"),
+    ("zh_CN", "Chinese (Simplified)"),
+    ("ar_SA", "Arabic"),
+]
+
 # Create a mapping of locales to their descriptions
 LOCALE_DESCRIPTIONS = {
     "en_US": "American English",
@@ -60,10 +78,10 @@ def sanitize_input(user_input):
 def verify_locale(locale):
     """
     Verify if the locale is supported and print appropriate warnings
-    
+
     Args:
         locale (str): The locale to verify
-        
+
     Returns:
         bool: True if the locale is supported, False otherwise
     """
@@ -77,7 +95,7 @@ def verify_locale(locale):
 def generate_data_cli():
     """Command-line interface for generating data"""
     parser = argparse.ArgumentParser(description="Generate synthetic 911 dispatch data")
-    parser.add_argument('-n', '--num-records', type=int, default=10000, 
+    parser.add_argument('-n', '--num-records', type=int, default=10000,
                         help='Number of records to generate (default: 10000)')
     parser.add_argument('-s', '--start-date', type=str, default='2024-01-01',
                         help='Start date in YYYY-MM-DD format (default: 2024-01-01)')
@@ -89,36 +107,38 @@ def generate_data_cli():
                         help='Faker locale for generating localized data (default: en_US)')
     parser.add_argument('-o', '--output-file', type=str, default='computer_aided_dispatch.csv',
                         help='Output file path (default: computer_aided_dispatch.csv)')
+    parser.add_argument('-a', '--agencies', type=str, default='',
+                        help='Comma-separated list of agencies to include (e.g., LAW,FIRE)')
     parser.add_argument('--list-locales', action='store_true',
                         help='List available locales and exit')
-    
+
     args = parser.parse_args()
-    
+
     if args.list_locales:
         print_locales()
         return
-    
+
     # Validate inputs
     if not validate_positive_int(str(args.num_records)):
         print("Error: Number of records must be a positive integer.")
         return
-    
+
     if not validate_date(args.start_date):
         print("Error: Start date must be in YYYY-MM-DD format.")
         return
-    
+
     if not validate_date(args.end_date):
         print("Error: End date must be in YYYY-MM-DD format.")
         return
-    
+
     if datetime.strptime(args.end_date, '%Y-%m-%d') < datetime.strptime(args.start_date, '%Y-%m-%d'):
         print("Error: End date must be after start date.")
         return
-    
+
     if not validate_positive_int(str(args.num_names)):
         print("Error: Number of names must be a positive integer.")
         return
-    
+
     # Check if locale is valid
     if not validate_locale(args.locale):
         print(f"Warning: '{args.locale}' is not in the list of common locales.")
@@ -127,7 +147,7 @@ def generate_data_cli():
         response = input("Do you want to continue with this locale? (y/n): ")
         if response.lower() != 'y':
             return
-    
+
     # Build the command
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synth911gen.py")
     cmd = [
@@ -140,25 +160,36 @@ def generate_data_cli():
         "-l", args.locale,
         "-o", args.output_file
     ]
-    
+
+    # Add agencies parameter if specified
+    if args.agencies:
+        try:
+            sanitized_agencies = sanitize_input(args.agencies)
+            cmd.extend(["-a", sanitized_agencies])
+        except ValueError as e:
+            print(f"Error: {str(e)}")
+            return
+
     # Run the command
     print("\nStarting data generation...")
     print(f"Number of records: {args.num_records}")
     print(f"Date range: {args.start_date} to {args.end_date}")
     print(f"Locale: {args.locale}")
     print(f"Output file: {args.output_file}")
-    
+    if args.agencies:
+        print(f"Agencies: {args.agencies}")
+
     try:
         process = subprocess.Popen(
-            cmd, 
-            stdout=subprocess.PIPE, 
+            cmd,
+            stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        
+
         # Get the output
         stdout, stderr = process.communicate()
-        
+
         if process.returncode == 0:
             # Success
             print("\nData generation completed successfully!")
@@ -176,7 +207,7 @@ def generate_data_interactive():
     """Interactive interface for generating data"""
     print("\nSynthetic 911 Data Generator - Interactive Mode")
     print("==============================================\n")
-    
+
     # Get number of records
     while True:
         num_records = input("How many records would you like to generate? [10000]: ")
@@ -186,7 +217,7 @@ def generate_data_interactive():
         if validate_positive_int(num_records):
             break
         print("Please enter a positive number.")
-    
+
     # Get start date
     while True:
         start_date = input("Enter start date (YYYY-MM-DD) [2024-01-01]: ")
@@ -196,7 +227,7 @@ def generate_data_interactive():
         if validate_date(start_date):
             break
         print("Please enter a valid date in YYYY-MM-DD format.")
-    
+
     # Get end date
     while True:
         end_date = input("Enter end date (YYYY-MM-DD) [2024-12-31]: ")
@@ -209,7 +240,7 @@ def generate_data_interactive():
             print("End date must be after start date.")
             continue
         print("Please enter a valid date in YYYY-MM-DD format.")
-    
+
     # Get number of names
     while True:
         num_names = input("How many names would you like to generate per shift? [8]: ")
@@ -219,7 +250,7 @@ def generate_data_interactive():
         if validate_positive_int(num_names):
             break
         print("Please enter a positive number.")
-    
+
     # Get locale
     print_locales()
     while True:
@@ -235,12 +266,17 @@ def generate_data_interactive():
         response = input("Do you want to continue with this locale? (y/n): ")
         if response.lower() == 'y':
             break
-    
+
+    # Get agencies
+    agencies = input("Enter agencies to include (comma-separated, e.g., LAW,FIRE) [all]: ")
+    if agencies.strip().lower() == 'all':
+        agencies = ""
+
     # Get output file
     output_file = input("Enter the output file path [computer_aided_dispatch.csv]: ")
     if not output_file:
         output_file = "computer_aided_dispatch.csv"
-    
+
     # Sanitize inputs
     try:
         num_records = sanitize_input(num_records)
@@ -249,10 +285,12 @@ def generate_data_interactive():
         num_names = sanitize_input(num_names)
         locale = sanitize_input(locale)
         output_file = sanitize_input(output_file)
+        if agencies:
+            agencies = sanitize_input(agencies)
     except ValueError as e:
         print(f"Error: {str(e)}")
         return
-    
+
     # Build the command
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synth911gen.py")
     cmd = [
@@ -265,25 +303,31 @@ def generate_data_interactive():
         "-l", locale,
         "-o", output_file
     ]
-    
+
+    # Add agencies parameter if specified
+    if agencies:
+        cmd.extend(["-a", agencies])
+
     # Run the command
     print("\nStarting data generation...")
     print(f"Number of records: {num_records}")
     print(f"Date range: {start_date} to {end_date}")
     print(f"Locale: {locale}")
     print(f"Output file: {output_file}")
-    
+    if agencies:
+        print(f"Agencies: {agencies}")
+
     try:
         process = subprocess.Popen(
-            cmd, 
-            stdout=subprocess.PIPE, 
+            cmd,
+            stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        
+
         # Get the output
         stdout, stderr = process.communicate()
-        
+
         if process.returncode == 0:
             # Success
             print("\nData generation completed successfully!")
@@ -302,16 +346,16 @@ def try_launch_gui():
     try:
         # Set environment variable to disable threading in X11
         os.environ['PYTHONTHREADED'] = '0'
-        
+
         # Try importing tkinter to see if it works
         import tkinter as tk
-        
+
         # Create a small test window to see if it works
         root = tk.Tk()
         root.withdraw()  # Hide the window
         root.update()    # Process events
         root.destroy()   # Close the window
-        
+
         # If we got here, tkinter is working
         return True
     except Exception as e:
@@ -325,20 +369,20 @@ def main():
         sys.argv.remove("--cli")
         generate_data_cli()
         return
-    
+
     # Check if --interactive flag is provided
     if "--interactive" in sys.argv:
         sys.argv.remove("--interactive")
         generate_data_interactive()
         return
-    
+
     # Try to launch the GUI
     if try_launch_gui():
         try:
             # Import and run the GUI
             from synthgui import Synth911GenGUI
             import tkinter as tk
-            
+
             root = tk.Tk()
             Synth911GenGUI(root)
             root.mainloop()
