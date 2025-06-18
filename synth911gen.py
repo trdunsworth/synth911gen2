@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 import fireducks.pandas as pd
 import numpy as np
@@ -18,12 +18,12 @@ try:
 except ImportError:
     print("Warning: PyInquirer is not available. Using command-line arguments instead.")
     PYINQUIRER_AVAILABLE = False
-    
+
     # Define a simple validator class for compatibility
     class Validator:
         def validate(self, document):
             pass
-            
+
     class ValidationError(Exception):
         def __init__(self, message, cursor_position):
             self.message = message
@@ -43,12 +43,12 @@ def sanitize_cli():
     This is separate from the main data generation functionality.
     """
     parser = argparse.ArgumentParser(description="Sanitize user input options in synth911gen.py")
-    
+
     # Example of a command-line argument
     parser.add_argument('--option', type=str, required=True, help='User input option')
-    
+
     args = parser.parse_args()
-    
+
     try:
         sanitized_option = sanitize_input(args.option)
         print(f"Sanitized Option: {sanitized_option}")
@@ -77,7 +77,7 @@ LAW_PROBLEMS = [
     ("OFFICER NEEDS ASSISTANCE", 1),
     ("HOSTAGE SITUATION", 1),
     ("SUICIDAL SUBJECT", 1),
-    
+
     # Priority 2 (Urgent response, potential for harm)
     ("DOMESTIC VIOL NO INJ", 2),
     ("DOMESTIC VIOL WITH INJ", 2),
@@ -87,7 +87,7 @@ LAW_PROBLEMS = [
     ("ASSAULT", 2),
     ("BURGLARY IN PROGRESS", 2),
     ("SUSPICIOUS PERSON WITH WEAPON", 2),
-    
+
     # Priority 3 (Prompt response, no immediate danger)
     ("SUSPICIOUS EVENT", 3),
     ("SUSPICIOUS PERSON", 3),
@@ -96,7 +96,7 @@ LAW_PROBLEMS = [
     ("LARCENY IN PROGRESS", 3),
     ("TRAFFIC ACCIDENT NO INJURY", 3),
     ("ALARM COMMERCIAL", 3),
-    
+
     # Priority 4 (Routine response, minor issues)
     ("NOISE COMPLAINT IN PROG", 4),
     ("NOISE COMPLAINT DELAY", 4),
@@ -105,7 +105,7 @@ LAW_PROBLEMS = [
     ("DISABLED MOTORIST", 4),
     ("PUBLIC SERVICE - LAW", 4),
     ("ASSIST CITIZEN", 4),
-    
+
     # Priority 5 (Non-urgent, administrative or delayed)
     ("PROPERTY LOST TRU", 5),
     ("POLICE INFORMATION", 5),
@@ -141,7 +141,7 @@ FIRE_PROBLEMS = [
     ("MVC SCHOOL BUS", 1),
     ("HAZMAT MAJOR", 1),
     ("STRUCTURE COLLAPSE", 1),
-    
+
     # Priority 2 (Urgent response, potential for harm)
     ("MVC AUTO", 2),
     ("GAS LEAK", 2),
@@ -151,20 +151,20 @@ FIRE_PROBLEMS = [
     ("MVC MOTORCYCLE", 2),
     ("WIRES DOWN", 2),
     ("HAZMAT", 2),
-    
+
     # Priority 3 (Prompt response, no immediate danger)
     ("FIRE ALARM", 3),
     ("ELEVATOR", 3),
     ("ODOR OF SMOKE", 3),
     ("WATER LEAK", 3),
     ("SMOKE DETECTOR", 3),
-    
+
     # Priority 4 (Routine response, minor issues)
     ("PUBLIC SERVICE - FIRE", 4),
     ("LOCKOUT", 4),
     ("ASSIST CITIZEN - FIRE", 4),
     ("ANIMAL RESCUE", 4),
-    
+
     # Priority 5 (Non-urgent, administrative or delayed)
     ("FIRE INSPECTION", 5),
     ("FIRE PREVENTION", 5),
@@ -196,7 +196,7 @@ EMS_PROBLEMS = [
     ("OVERDOSE ALS", 1),
     ("TRAUMATIC INJURY ALS", 1),
     ("DROWNING", 1),
-    
+
     # Priority 2 (Urgent response, potential for harm)
     ("TROUBLE BREATHING ALS", 2),
     ("CHEST PAIN ALS", 2),
@@ -206,7 +206,7 @@ EMS_PROBLEMS = [
     ("ASSAULT ALS", 2),
     ("PSYCHIATRIC EMERGENCY ALS", 2),
     ("ALS EMERGENCY", 2),
-    
+
     # Priority 3 (Prompt response, no immediate danger)
     ("BLS EMERGENCY", 3),
     ("FALL BLS", 3),
@@ -214,12 +214,12 @@ EMS_PROBLEMS = [
     ("BACK PAIN BLS", 3),
     ("HEADACHE BLS", 3),
     ("SICK PERSON BLS", 3),
-    
+
     # Priority 4 (Routine response, minor issues)
     ("PUBLIC SERICE EMS", 4),
     ("MINOR MEDICAL", 4),
     ("ASSIST CITIZEN - EMS", 4),
-    
+
     # Priority 5 (Non-urgent, administrative or delayed)
     ("MEDICAL ALARM", 5),
     ("ROUTINE TRANSPORT", 5),
@@ -238,8 +238,30 @@ ems_problem_provider = DynamicProvider(
 
 # TODO: Hook this to a web interface to allow users to generate data on demand.
 
+def filter_agencies(agencies, selected_agencies):
+    """
+    Filter the list of agencies based on user selection.
 
-def generate_911_data(num_records=10000, start_date=None, end_date=None, num_names=8, locale=DEFAULT_LOCALE):
+    Args:
+        agencies (list): List of all available agencies
+        selected_agencies (list): List of agencies selected by the user
+
+    Returns:
+        list: Filtered list of agencies
+    """
+    if not selected_agencies:
+        # If no selection made, return all agencies
+        return agencies
+
+    # Validate selected agencies and filter out invalid ones
+    invalid_agencies = [agency for agency in selected_agencies if agency not in agencies]
+    if invalid_agencies:
+        print(f"Warning: The following selected agencies are not valid and will be ignored: {', '.join(invalid_agencies)}")
+
+    # Return only the valid selected agencies
+    return [agency for agency in agencies if agency in selected_agencies]
+
+def generate_911_data(num_records=10000, start_date=None, end_date=None, num_names=8, locale=DEFAULT_LOCALE, selected_agencies=None):
     """
     This function generates synthetic 911 dispatch data for a given number of records. This will output a CSV file with the generated data.
     The data includes various fields such as call_id, agency, event_time, day_of_year, week_no, hour, day_night, dow, shift, shift_part, problem, address, priority_number, call_taker, call_reception, dispatcher, queue_time, dispatch_time, phone_time, ack_time, enroute_time, on_scene_time, process_time, total_time and time stamps for various events.
@@ -251,6 +273,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         num_names (int, optional): Number of names to generate per shift. Defaults to 8.
         locale (str, optional): Faker locale for generating localized data. Defaults to "en_US".
                                Examples: "en_GB" (British English), "fr_FR" (French), "de_DE" (German), etc.
+        selected_agencies (list, optional): List of agencies to include. Defaults to None (all agencies).
 
         This needs to be run with the following setup: python synth911gen.py -n 10000 -s 2024-01-01 -e 2024-12-31 -o computer_aided_dispatch.csv
     """
@@ -258,14 +281,14 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     if not validate_locale(locale):
         print(f"Warning: Unsupported locale '{locale}'. Falling back to {DEFAULT_LOCALE}")
         locale = DEFAULT_LOCALE
-    
+
     # Initialize Faker with the specified locale
     global fake
     fake = Faker(locale)
-    
+
     # Generate address list with the specified locale
     address_list = [fake.unique.street_address() for _ in range(2500)]
-    
+
     # Create street address provider
     street_address_provider = DynamicProvider(
         provider_name="street_address", elements=address_list
@@ -291,8 +314,19 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     probabilities = [0.72, 0.17, 0.11]
     agencies = ["LAW", "EMS", "FIRE"]
 
+    # Filter agencies based on user selection
+    filtered_agencies = filter_agencies(agencies, selected_agencies)
+
+    # Update probabilities to match the filtered agencies
+    if len(filtered_agencies) < len(agencies):
+        # If filtering, adjust probabilities to sum to 1
+        probabilities = [1.0 / len(filtered_agencies)] * len(filtered_agencies)
+    else:
+        # Otherwise, use the default probabilities
+        probabilities = [0.72, 0.17, 0.11]
+
     # Generate the agency column with the specified distribution
-    agency_choices = np.random.choice(agencies, size=num_records, p=probabilities)
+    agency_choices = np.random.choice(filtered_agencies, size=num_records, p=probabilities)
 
     # Map agency to prefix
     agency_prefix = {"LAW": "L", "EMS": "M", "FIRE": "F"}
@@ -325,7 +359,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         "F": get_start_number()
     }
     call_ids_full = []
-    
+
     for agency in agency_choices:
         prefix = agency_prefix[agency]
         call_id = f"{year_suffix}-{prefix}{agency_counters[prefix]:06d}"
@@ -384,7 +418,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
             row (_type_): _description_
 
         Returns:
-           string: This returns the shift based on the logic defined above.
+            string: This returns the shift based on the logic defined above.
         """
         if row["week_no"] % 2 == 0:
             if row["day_night"] == "DAY" and row["dow"] in ["MON", "TUE", "FRI", "SAT"]:
@@ -481,12 +515,12 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     law_priority_map = {problem: priority for problem, priority in LAW_PROBLEMS}
     fire_priority_map = {problem: priority for problem, priority in FIRE_PROBLEMS}
     ems_priority_map = {problem: priority for problem, priority in EMS_PROBLEMS}
-    
+
     # Function to assign priority number based on agency and problem
     def assign_priority(row):
         agency = row["agency"]
         problem = row["problem"]
-        
+
         if agency == "LAW":
             # Use the law priority map, default to 3 if problem not found
             return law_priority_map.get(problem, 3)
@@ -499,7 +533,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         else:
             # Default priority for unknown agency
             return 3
-    
+
     # Add priority_number column based on the problem type and agency
     df_full["priority_number"] = df_full.apply(assign_priority, axis=1)
 
@@ -651,7 +685,6 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
 
     return df_full, call_taker_names, dispatcher_names
 
-
 class DateValidator(Validator):
     def validate(self, document):
         try:
@@ -662,12 +695,11 @@ class DateValidator(Validator):
                 cursor_position=len(document.text)
             )
 
-
 def main():
     """
     This is the main entry point of the script. It provides an interactive command line interface
     to generate 911 dispatch data and saves it to a CSV file.
-    
+
     If PyInquirer is available, it will use an interactive prompt.
     Otherwise, it will use command-line arguments.
     """
@@ -713,21 +745,28 @@ def main():
                 'name': 'output_file',
                 'message': 'Enter the output file path:',
                 'default': 'computer_aided_dispatch.csv'
+            },
+            {
+                'type': 'input',
+                'name': 'selected_agencies',
+                'message': 'Enter agencies to include (comma-separated, e.g., LAW,FIRE):',
+                'default': ''
             }
         ]
 
         answers = prompt(questions)
-        
+
         num_records = int(answers['num_records'])
         start_date = answers['start_date']
         end_date = answers['end_date']
         num_names = int(answers['num_names'])
         locale = answers['locale']
         output_file = answers['output_file']
+        selected_agencies = answers['selected_agencies'].split(',') if answers['selected_agencies'] else None
     else:
         # Command-line argument mode
         parser = argparse.ArgumentParser(description="Generate synthetic 911 dispatch data")
-        parser.add_argument('-n', '--num-records', type=int, default=10000, 
+        parser.add_argument('-n', '--num-records', type=int, default=10000,
                             help='Number of records to generate (default: 10000)')
         parser.add_argument('-s', '--start-date', type=str, default='2024-01-01',
                             help='Start date in YYYY-MM-DD format (default: 2024-01-01)')
@@ -739,9 +778,11 @@ def main():
                             help=f'Faker locale for generating localized data (default: {DEFAULT_LOCALE})')
         parser.add_argument('-o', '--output-file', type=str, default='computer_aided_dispatch.csv',
                             help='Output file path (default: computer_aided_dispatch.csv)')
-        
+        parser.add_argument('-a', '--agencies', type=str, default='',
+                            help='Comma-separated list of agencies to include (e.g., LAW,FIRE)')
+
         args = parser.parse_args()
-        
+
         # Validate dates
         try:
             datetime.strptime(args.start_date, '%Y-%m-%d')
@@ -749,13 +790,14 @@ def main():
         except ValueError:
             print("Error: Dates must be in YYYY-MM-DD format")
             sys.exit(1)
-            
+
         num_records = args.num_records
         start_date = args.start_date
         end_date = args.end_date
         num_names = args.num_names
         locale = args.locale
         output_file = args.output_file
+        selected_agencies = args.agencies.split(',') if args.agencies else None
 
     # Generate data with specified parameters
     df_full, call_taker_names, dispatcher_names = generate_911_data(
@@ -763,7 +805,8 @@ def main():
         start_date=start_date,
         end_date=end_date,
         num_names=num_names,
-        locale=locale
+        locale=locale,
+        selected_agencies=selected_agencies
     )
 
     # Save the DataFrame to a CSV file
@@ -783,7 +826,6 @@ def main():
     print("\nDispatcher Names per Shift:")
     for shift, names in dispatcher_names.items():
         print(f"Shift {shift}: {names}")
-
 
 if __name__ == "__main__":
     main()

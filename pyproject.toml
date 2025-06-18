@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "faker>=37.4.0",
+    "flask>=3.0.0",
     "fireducks>=1.2.8",
     "numpy>=2.3.0",
     "pytest>=8.4.0",
