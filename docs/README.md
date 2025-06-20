@@ -15,6 +15,9 @@ Welcome to the comprehensive documentation for Synth911Gen2, a synthetic 911 dis
 - **[Interactive Mode](guides/interactive-mode.md)** - Step-by-step interactive mode
 - **[Web Interface](guides/web-interface.md)** - Using the Flask web GUI
 
+### 🧪 Examples
+- **[Distribution Analysis Example](examples/distribution_analysis.md)** - Analyze numeric columns and fit distributions
+
 ### 🔧 API Reference
 - **[Core API](api/core.md)** - Main data generation functions
 - **[GUI API](api/gui.md)** - Tkinter interface components
@@ -72,4 +75,4 @@ This documentation is maintained alongside the codebase. If you find any issues 
 ---
 
 **Last Updated**: December 2024  
-**Version**: 0.1.0 
+**Version**: 0.1.0

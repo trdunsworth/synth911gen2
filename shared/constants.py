@@ -4,6 +4,7 @@ Contains configuration values and options used across multiple modules.
 """
 
 # Default and supported locales for Faker data generation
+# 20250620 Added Mexican Spanish and Canadian French to the list of supported locales
 DEFAULT_LOCALE = "en_US"
 SUPPORTED_LOCALES = [
     "en_US",  # American English
@@ -20,6 +21,8 @@ SUPPORTED_LOCALES = [
     "ko_KR",  # Korean
     "zh_CN",  # Chinese (Simplified)
     "ar_SA",  # Arabic
+    "es_MX",  # Mexican Spanish
+    "fr_CA",  # Canadian French
 ]
 
 def validate_locale(locale):

@@ -233,6 +233,25 @@ ems_problem_provider = DynamicProvider(
     elements=[problem for problem, _ in EMS_PROBLEMS]
 )
 
+# List of Dispositions
+# These are the final outcomes of a call, which can be used to indicate how the call was resolved.
+DISPOSITIONS = [
+    "CANCELLED",
+    "NO ACTION TAKEN",
+    "REFERRED TO OTHER AGENCY",
+    "REPORT TAKEN",
+    "ARREST MADE",
+    "CITATION ISSUED",
+    "UNIT CLEARED",
+    "TAKEN TO HOSPITAL",
+]
+
+# Create a DynamicProvider for dispositions
+disposition_provider = DynamicProvider(
+    provider_name="disposition",
+    elements=DISPOSITIONS
+)
+
 # Street address provider will be created in the generate_911_data function
 # after Faker is initialized with the specified locale
 
@@ -502,6 +521,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     fake.add_provider(law_problem_provider)
     fake.add_provider(fire_problem_provider)
     fake.add_provider(ems_problem_provider)
+    fake.add_provider(disposition_provider)
 
     df_full["problem"] = df_full["agency"].apply(assign_problem)
 
@@ -668,6 +688,18 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         df_full["total_time"], unit="s"
     )
 
+    law_dispositions = DISPOSITIONS
+nonlaw_dispositions = [d for d in DISPOSITIONS if d != "ARREST MADE"]
+
+def assign_disposition(agency):
+    if agency == "LAW":
+        return fake.disposition()
+    else:
+        return random.choice(nonlaw_dispositions)
+
+    # Add disposition column with random dispositions
+    df_full["disposition"] = df_full["agency"].apply(assign_disposition)
+
     # List all your datetime columns
     datetime_cols = [
         "event_time",
@@ -682,6 +714,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     # Format each datetime column as 'MMMM-YY-DD HH:mm:ss'
     for col in datetime_cols:
         df_full[col] = df_full[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+        
 
     return df_full, call_taker_names, dispatcher_names
 
@@ -699,10 +732,8 @@ def main():
     """
     This is the main entry point of the script. It provides an interactive command line interface
     to generate 911 dispatch data and saves it to a CSV file.
-
-    If PyInquirer is available, it will use an interactive prompt.
-    Otherwise, it will use command-line arguments.
     """
+
     if PYINQUIRER_AVAILABLE:
         # Interactive mode with PyInquirer
         questions = [

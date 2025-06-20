@@ -64,6 +64,16 @@ After generation, you'll find a CSV file with columns like:
 | INC-2024-000001 | 2024-01-01 08:15:22 | John Smith | 123 Main St | Medical Emergency | 2 | EMS |
 | INC-2024-000002 | 2024-01-01 09:30:45 | Jane Doe | 456 Oak Ave | Traffic Accident | 3 | LAW |
 
+## 📊 Distribution Analysis Utility
+
+You can analyze the statistical distribution of numeric columns in any CSV file using:
+
+```bash
+python data/distribution_analyzer.py your_file.csv
+```
+
+See [Distribution Analysis Example](../examples/distribution_analysis.md) for details.
+
 ## 🎨 Step 4: Customize Your Data
 
 ### Change the Language/Locale
@@ -221,4 +231,4 @@ Now that you've generated your first dataset, explore:
 
 ---
 
-**Congratulations!** You've successfully generated your first synthetic 911 dispatch dataset. 🎉 
+**Congratulations!** You've successfully generated your first synthetic 911 dispatch dataset. 🎉

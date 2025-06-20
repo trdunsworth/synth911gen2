@@ -1,0 +1,54 @@
+Column: Ring_Time
+  Best fit: uniform
+  Parameters: (-118.0, 62218.0)
+  p-value: 0.0000
+  Summary: {'count': 615122.0, 'mean': 1.8051297141054945, 'std': 346.8381969174383, 'min': -118.0, '25%': -2.0, '50%': 0.0, '75%': 0.0, 'max': 62100.0}
+
+Column: Call_Setup_Time
+  Best fit: uniform
+  Parameters: (-40.0, 13483.0)
+  p-value: 0.0000
+  Summary: {'count': 615122.0, 'mean': 4.567529693296614, 'std': 40.47463290039063, 'min': -40.0, '25%': 0.0, '50%': 1.0, '75%': 3.0, 'max': 13443.0}
+
+Column: Call_Taking_Time
+  Best fit: uniform
+  Parameters: (-3457.0, 15733569.0)
+  p-value: 0.0000
+  Summary: {'count': 615122.0, 'mean': 2297.3737583763873, 'std': 90827.71068635675, 'min': -3457.0, '25%': 16.0, '50%': 42.0, '75%': 93.0, 'max': 15730112.0}
+
+Column: Queue_Time
+  Best fit: uniform
+  Parameters: (-15407001.0, 15498995.0)
+  p-value: 0.0000
+  Summary: {'count': 394641.0, 'mean': -2969.964119288163, 'std': 115492.53132527077, 'min': -15407001.0, '25%': 0.0, '50%': 21.0, '75%': 288.0, 'max': 91994.0}
+
+Column: Processing_Time
+  Best fit: uniform
+  Parameters: (-3271.0, 233370.0)
+  p-value: 0.0000
+  Summary: {'count': 615076.0, 'mean': 194.69023990531252, 'std': 665.148430679822, 'min': -3271.0, '25%': 25.0, '50%': 86.0, '75%': 202.0, 'max': 230099.0}
+
+Column: Rollout_Time
+  Best fit: uniform
+  Parameters: (-382.0, 9015481.0)
+  p-value: 0.0000
+  Summary: {'count': 385628.0, 'mean': 487.33886024873715, 'std': 26292.553871695243, 'min': -382.0, '25%': 0.0, '50%': 4.0, '75%': 28.0, 'max': 9015099.0}
+
+Column: Transit_Time
+  Best fit: uniform
+  Parameters: (-149910.0, 15003907.0)
+  p-value: 0.0000
+  Summary: {'count': 358680.0, 'mean': 667.5910505185681, 'std': 33421.76566693981, 'min': -149910.0, '25%': 0.0, '50%': 194.0, '75%': 392.0, 'max': 14853997.0}
+
+Column: On_Scene_Time
+  Best fit: uniform
+  Parameters: (-2363.0, 15439757.0)
+  p-value: 0.0000
+  Summary: {'count': 358679.0, 'mean': 7764.869568611488, 'std': 110449.12345970966, 'min': -2363.0, '25%': 535.0, '50%': 1556.0, '75%': 4822.0, 'max': 15437394.0}
+
+Column: Total_Time
+  Best fit: uniform
+  Parameters: (-2650.0, 66537769.0)
+  p-value: 0.0000
+  Summary: {'count': 623510.0, 'mean': 15332.024830395663, 'std': 326715.6057911242, 'min': -2650.0, '25%': 158.0, '50%': 1176.0, '75%': 4484.0, 'max': 66535119.0}
+
