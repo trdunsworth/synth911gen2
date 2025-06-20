@@ -68,7 +68,7 @@ python main.py --cli -n 10000 -s 2024-01-01 -e 2024-12-31
 # Generate French data
 python main.py --cli -n 5000 -l fr_FR -o french_dispatch.csv
 
-# Genrate data using uv
+# Generate data using uv
 uv run main.py --cli -n 12000 -s 2024-01-01 -e 2024-12-31 -l en_GB -a "FIRE,EMS" -0 uv_test.csv
 ```
 
