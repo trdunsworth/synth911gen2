@@ -47,6 +47,7 @@ def index():
             locale = request.form.get('locale', 'en_US')
             output_file = request.form.get('output_file', 'computer_aided_dispatch.csv')
             agencies = request.form.get('agencies', '')
+            agency_probabilities = request.form.get('agency_probabilities', '')
 
             # Sanitize required inputs
             sanitize_input(num_records)
@@ -59,6 +60,10 @@ def index():
             # Only sanitize agencies if it's not empty
             if agencies.strip():
                 sanitize_input(agencies)
+
+            # Only sanitize agency probabilities if provided
+            if agency_probabilities.strip():
+                sanitize_input(agency_probabilities)
 
             # Build command
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synth911gen.py")
@@ -76,6 +81,10 @@ def index():
             # Only add agencies argument if it's not empty
             if agencies.strip():
                 cmd.extend(["-a", agencies])
+
+            # Add agency probabilities argument if provided
+            if agency_probabilities.strip():
+                cmd.extend(["--agency-probabilities", agency_probabilities])
 
             # Run process
             result = subprocess.run(
@@ -155,6 +164,11 @@ def index():
                 <div class="form-group">
                     <label for="agencies">Agencies (comma-separated, e.g., LAW,FIRE):</label>
                     <input type="text" id="agencies" name="agencies">
+                </div>
+                
+                <div class="form-group">
+                    <label for="agency_probabilities">Agency Probabilities (comma-separated, e.g., 0.7,0.2,0.1):</label>
+                    <input type="text" id="agency_probabilities" name="agency_probabilities">
                 </div>
                 
                 <div class="form-group">

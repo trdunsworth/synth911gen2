@@ -539,4 +539,4 @@ DEFAULT_SETTINGS["enable_logging"] = True
 **See Also**: 
 - [Core API](core.md) - Main data generation functions
 - [GUI API](gui.md) - Tkinter interface components  
-- [CLI API](cli.md) - Command-line interface functions 
+- [CLI API](cli.md) - Command-line interface functions

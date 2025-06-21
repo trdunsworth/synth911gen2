@@ -106,6 +106,20 @@ python main.py --cli -n 5000 -s 2024-06-01 -e 2024-06-30 -o june_2024.csv
 python main.py --cli -n 10000 -s 2023-01-01 -e 2024-12-31 -o two_year_data.csv
 ```
 
+### Custom Agency Probabilities
+
+You can control the distribution of agencies in your dataset by specifying custom probabilities (must sum to 1.0):
+
+```bash
+# 80% LAW, 20% FIRE
+python main.py --cli -n 1000 -a "LAW,FIRE" --agency-probabilities 0.8,0.2 -o law_fire_weighted.csv
+
+# 50% LAW, 30% FIRE, 20% EMS
+python main.py --cli -n 1000 -a "LAW,FIRE,EMS" --agency-probabilities 0.5,0.3,0.2 -o weighted_agencies.csv
+```
+
+This option is also available in the GUI and Web interfaces as a comma-separated field.
+
 ## 🔧 Step 5: Advanced Configuration
 
 ### Large Datasets

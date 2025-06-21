@@ -20,7 +20,8 @@ def generate_synthetic_data(
     locale: str = "en_US",
     agencies: Optional[List[str]] = None,
     num_names: int = 8,
-    output_file: str = "computer_aided_dispatch.csv"
+    output_file: str = "computer_aided_dispatch.csv",
+    agency_probabilities: Optional[List[float]] = None
 ) -> pd.DataFrame:
     """
     Generate synthetic 911 dispatch data.
@@ -33,6 +34,7 @@ def generate_synthetic_data(
         agencies (List[str], optional): List of agencies to include
         num_names (int): Number of dispatcher names to generate
         output_file (str): Output CSV file path
+        agency_probabilities (List[float], optional): Probabilities for selected agencies (must sum to 1)
         
     Returns:
         pd.DataFrame: Generated synthetic data
@@ -54,6 +56,7 @@ def generate_synthetic_data(
 | `agencies` | `List[str]` | `None` | List of agencies (LAW, FIRE, EMS, etc.) |
 | `num_names` | `int` | `8` | Number of dispatcher names to rotate |
 | `output_file` | `str` | `"computer_aided_dispatch.csv"` | Output file path |
+| `agency_probabilities` | `List[float]` | `None` | Probabilities for selected agencies (must sum to 1) |
 
 #### Return Value
 
@@ -87,6 +90,14 @@ data = generate_synthetic_data(
     agencies=["LAW", "FIRE"],
     num_names=12,
     output_file="french_law_fire.csv"
+)
+
+# Advanced usage with custom agency probabilities
+data = generate_synthetic_data(
+    num_records=1000,
+    agencies=["LAW", "FIRE"],
+    agency_probabilities=[0.8, 0.2],
+    output_file="law_fire_weighted.csv"
 )
 ```
 
@@ -420,4 +431,4 @@ def validate_generated_data(data: pd.DataFrame) -> bool:
 **See Also**: 
 - [GUI API](gui.md) - Tkinter interface documentation
 - [CLI API](cli.md) - Command-line interface documentation
-- [Constants API](constants.md) - Configuration constants 
+- [Constants API](constants.md) - Configuration constants

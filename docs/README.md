@@ -72,6 +72,11 @@ This documentation is maintained alongside the codebase. If you find any issues 
 - **Examples**: Check the examples directory for working code
 - **API Reference**: Detailed function documentation
 
+## ⚙️ Configuration Options
+
+- **Custom Agency Probabilities**: You can specify the probability distribution for selected agencies in CLI, GUI, and Web interfaces. See [CLI Usage](guides/cli-usage.md) and [Quick Start](guides/quickstart.md) for details.
+- **RESCUE Agency**: The RESCUE agency is now fully supported in all interfaces, with realistic problems and priorities.
+
 ---
 
 **Last Updated**: December 2024  

@@ -46,6 +46,7 @@ uv run main.py --cli -n 2000 -a "LAW" -o law_enforcement.csv
 | `--locale` | `-l` | Faker locale | `en_US` | `-l fr_FR` |
 | `--agencies` | `-a` | Comma-separated agencies | All | `-a "LAW,FIRE"` |
 | `--output-file` | `-o` | Output file path | `computer_aided_dispatch.csv` | `-o my_data.csv` |
+| `--agency-probabilities` | | Probabilities for selected agencies (comma-separated, must sum to 1) | | `--agency-probabilities 0.7,0.2,0.1` |
 
 ### Information Options
 
@@ -132,6 +133,16 @@ python main.py --cli \
   -l es_ES \
   -a "LAW,FIRE,EMS" \
   -o spanish_emergency_2024.csv
+```
+
+### Example 6: Custom Agency Probabilities
+
+```bash
+# Generate data with custom probabilities for LAW and FIRE
+python main.py --cli -n 1000 -a "LAW,FIRE" --agency-probabilities 0.8,0.2 -o law_fire_weighted.csv
+
+# Generate data with custom probabilities for three agencies
+python main.py --cli -n 1000 -a "LAW,FIRE,EMS" --agency-probabilities 0.5,0.3,0.2 -o weighted_agencies.csv
 ```
 
 ## 🔍 Information Commands
@@ -463,4 +474,4 @@ python main.py --cli --list-locales
 **Next Steps**: 
 - Explore [Interactive Mode](interactive-mode.md) for guided usage
 - Check [GUI Usage](gui-usage.md) for graphical interface
-- Review [Examples](../examples/) for advanced usage patterns 
+- Review [Examples](../examples/) for advanced usage patterns

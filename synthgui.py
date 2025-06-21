@@ -113,9 +113,15 @@ class Synth911GenGUI:
         browse_button = ttk.Button(main_frame, text="Browse...", command=self.browse_output_file)
         browse_button.grid(row=7, column=2, sticky="w", padx=(5, 0), pady=5)
 
+        # Agency probabilities
+        ttk.Label(main_frame, text="Agency Probabilities (comma-separated, e.g., 0.7,0.2,0.1):").grid(row=8, column=0, sticky="w", pady=5)
+        self.agency_probabilities_var = tk.StringVar(value="")
+        agency_probabilities_entry = ttk.Entry(main_frame, textvariable=self.agency_probabilities_var, width=30)
+        agency_probabilities_entry.grid(row=8, column=1, sticky="ew", pady=5)
+
         # Status frame
         status_frame = ttk.LabelFrame(main_frame, text="Status", padding="10")
-        status_frame.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(20, 10))
+        status_frame.grid(row=9, column=0, columnspan=3, sticky="ew", pady=(20, 10))
 
         # Status text
         self.status_text = tk.Text(status_frame, height=10, width=60, wrap=tk.WORD)
@@ -129,7 +135,7 @@ class Synth911GenGUI:
 
         # Buttons frame
         buttons_frame = ttk.Frame(main_frame)
-        buttons_frame.grid(row=9, column=0, columnspan=3, pady=(10, 0))
+        buttons_frame.grid(row=10, column=0, columnspan=3, pady=(10, 0))
 
         # Generate button
         generate_button = ttk.Button(buttons_frame, text="Generate Data", command=self.generate_data)
@@ -245,6 +251,7 @@ class Synth911GenGUI:
             locale = self.sanitize_input(self.locale_var.get())
             output_file = self.sanitize_input(self.output_file_var.get())
             agencies = self.sanitize_input(self.agencies_var.get())
+            agency_probabilities = self.sanitize_input(self.agency_probabilities_var.get())
 
             # Update status
             self.update_status("Starting data generation...")
@@ -254,6 +261,8 @@ class Synth911GenGUI:
             self.update_status(f"Output file: {output_file}")
             if agencies:
                 self.update_status(f"Agencies: {agencies}")
+            if agency_probabilities:
+                self.update_status(f"Agency Probabilities: {agency_probabilities}")
 
             # Build the command
             script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synth911gen.py")
@@ -271,6 +280,9 @@ class Synth911GenGUI:
             # Add agencies parameter if specified
             if agencies:
                 cmd.extend(["-a", agencies])
+            # Add agency probabilities if specified
+            if agency_probabilities:
+                cmd.extend(["--agency-probabilities", agency_probabilities])
 
             # Run the command
             self.update_status("Running data generation process...")

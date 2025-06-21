@@ -109,6 +109,8 @@ def generate_data_cli():
                         help='Output file path (default: computer_aided_dispatch.csv)')
     parser.add_argument('-a', '--agencies', type=str, default='',
                         help='Comma-separated list of agencies to include (e.g., LAW,FIRE)')
+    parser.add_argument('--agency-probabilities', type=str, default='',
+                        help='Comma-separated probabilities for selected agencies (e.g., 0.7,0.2,0.1)')
     parser.add_argument('--list-locales', action='store_true',
                         help='List available locales and exit')
 
@@ -170,6 +172,15 @@ def generate_data_cli():
             print(f"Error: {str(e)}")
             return
 
+    # Add agency probabilities parameter if specified
+    if args.agency_probabilities:
+        try:
+            sanitized_probs = sanitize_input(args.agency_probabilities)
+            cmd.extend(["--agency-probabilities", sanitized_probs])
+        except ValueError as e:
+            print(f"Error: {str(e)}")
+            return
+
     # Run the command
     print("\nStarting data generation...")
     print(f"Number of records: {args.num_records}")
@@ -178,6 +189,8 @@ def generate_data_cli():
     print(f"Output file: {args.output_file}")
     if args.agencies:
         print(f"Agencies: {args.agencies}")
+    if args.agency_probabilities:
+        print(f"Agency Probabilities: {args.agency_probabilities}")
 
     try:
         process = subprocess.Popen(
@@ -268,9 +281,13 @@ def generate_data_interactive():
             break
 
     # Get agencies
-    agencies = input("Enter agencies to include (comma-separated, e.g., LAW,FIRE) [all]: ")
-    if agencies.strip().lower() == 'all':
+    agencies = input("Enter agencies to include (comma-separated, e.g., LAW,FIRE) []: ")
+    if not agencies:
         agencies = ""
+    # Get agency probabilities
+    agency_probabilities = input("Enter agency probabilities (comma-separated, e.g., 0.7,0.2,0.1) []: ")
+    if not agency_probabilities:
+        agency_probabilities = ""
 
     # Get output file
     output_file = input("Enter the output file path [computer_aided_dispatch.csv]: ")
@@ -287,6 +304,8 @@ def generate_data_interactive():
         output_file = sanitize_input(output_file)
         if agencies:
             agencies = sanitize_input(agencies)
+        if agency_probabilities:
+            agency_probabilities = sanitize_input(agency_probabilities)
     except ValueError as e:
         print(f"Error: {str(e)}")
         return
@@ -303,10 +322,10 @@ def generate_data_interactive():
         "-l", locale,
         "-o", output_file
     ]
-
-    # Add agencies parameter if specified
     if agencies:
         cmd.extend(["-a", agencies])
+    if agency_probabilities:
+        cmd.extend(["--agency-probabilities", agency_probabilities])
 
     # Run the command
     print("\nStarting data generation...")
@@ -316,6 +335,8 @@ def generate_data_interactive():
     print(f"Output file: {output_file}")
     if agencies:
         print(f"Agencies: {agencies}")
+    if agency_probabilities:
+        print(f"Agency Probabilities: {agency_probabilities}")
 
     try:
         process = subprocess.Popen(

@@ -233,6 +233,52 @@ ems_problem_provider = DynamicProvider(
     elements=[problem for problem, _ in EMS_PROBLEMS]
 )
 
+# RESCUE problems with their associated priority levels
+# Priority 1: Immediate response, life-threatening
+# Priority 2: Urgent response, potential for harm
+# Priority 3: Prompt response, no immediate danger
+# Priority 4: Routine response, minor issues
+# Priority 5: Non-urgent, administrative or delayed response
+
+RESCUE_PROBLEMS = [
+    # Priority 1 (Immediate response, life-threatening)
+    ("WATER RESCUE IN PROGRESS", 1),
+    ("MOUNTAIN RESCUE IN PROGRESS", 1),
+    ("VEHICLE EXTRICATION WITH ENTRAPMENT", 1),
+    ("CONFINED SPACE RESCUE", 1),
+    ("HIGH ANGLE RESCUE", 1),
+    ("SEARCH AND RESCUE - MISSING PERSON", 1),
+    ("TECHNICAL RESCUE - STRUCTURE COLLAPSE", 1),
+
+    # Priority 2 (Urgent response, potential for harm)
+    ("WATER RESCUE STANDBY", 2),
+    ("MOUNTAIN RESCUE STANDBY", 2),
+    ("VEHICLE EXTRICATION NO ENTRAPMENT", 2),
+    ("SEARCH AND RESCUE - NON-CRITICAL", 2),
+    ("ANIMAL RESCUE - DANGEROUS SITUATION", 2),
+
+    # Priority 3 (Prompt response, no immediate danger)
+    ("ANIMAL RESCUE - NON-URGENT", 3),
+    ("PUBLIC ASSIST RESCUE", 3),
+    ("STANDBY FOR EVENT", 3),
+
+    # Priority 4 (Routine response, minor issues)
+    ("EQUIPMENT CHECK RESCUE", 4),
+    ("TRAINING EXERCISE RESCUE", 4),
+    ("PUBLIC EDUCATION RESCUE", 4),
+
+    # Priority 5 (Non-urgent, administrative or delayed)
+    ("RESCUE REPORT ONLY", 5),
+    ("RESCUE INFORMATION", 5),
+    ("FOLLOW UP RESCUE", 5),
+]
+
+# Create the DynamicProvider with just the problem names
+rescue_problem_provider = DynamicProvider(
+    provider_name="rescue_problem",
+    elements=[problem for problem, _ in RESCUE_PROBLEMS]
+)
+
 # List of Dispositions
 # These are the final outcomes of a call, which can be used to indicate how the call was resolved.
 DISPOSITIONS = [
@@ -280,7 +326,7 @@ def filter_agencies(agencies, selected_agencies):
     # Return only the valid selected agencies
     return [agency for agency in agencies if agency in selected_agencies]
 
-def generate_911_data(num_records=10000, start_date=None, end_date=None, num_names=8, locale=DEFAULT_LOCALE, selected_agencies=None):
+def generate_911_data(num_records=10000, start_date=None, end_date=None, num_names=8, locale=DEFAULT_LOCALE, selected_agencies=None, agency_probabilities=None):
     """
     This function generates synthetic 911 dispatch data for a given number of records. This will output a CSV file with the generated data.
     The data includes various fields such as call_id, agency, event_time, day_of_year, week_no, hour, day_night, dow, shift, shift_part, problem, address, priority_number, call_taker, call_reception, dispatcher, queue_time, dispatch_time, phone_time, ack_time, enroute_time, on_scene_time, process_time, total_time and time stamps for various events.
@@ -293,6 +339,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         locale (str, optional): Faker locale for generating localized data. Defaults to "en_US".
                                Examples: "en_GB" (British English), "fr_FR" (French), "de_DE" (German), etc.
         selected_agencies (list, optional): List of agencies to include. Defaults to None (all agencies).
+        agency_probabilities (list, optional): List of probabilities for each agency. Defaults to None.
 
         This needs to be run with the following setup: python synth911gen.py -n 10000 -s 2024-01-01 -e 2024-12-31 -o computer_aided_dispatch.csv
     """
@@ -330,25 +377,29 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     dispatcher_names = {key: generate_names(num_names) for key in ["A", "B", "C", "D"]}
 
     # Define the probabilities for each agency
-    probabilities = [0.72, 0.17, 0.11]
-    agencies = ["LAW", "EMS", "FIRE"]
+    probabilities = [0.72, 0.15, 0.10, 0.03]  # LAW, EMS, FIRE, RESCUE
+    agencies = ["LAW", "EMS", "FIRE", "RESCUE"]
 
     # Filter agencies based on user selection
     filtered_agencies = filter_agencies(agencies, selected_agencies)
 
-    # Update probabilities to match the filtered agencies
-    if len(filtered_agencies) < len(agencies):
-        # If filtering, adjust probabilities to sum to 1
+    # Handle user-specified probabilities
+    if agency_probabilities is not None:
+        if len(agency_probabilities) != len(filtered_agencies):
+            raise ValueError("Number of agency probabilities must match number of selected agencies.")
+        if not np.isclose(sum(agency_probabilities), 1.0):
+            raise ValueError("Agency probabilities must sum to 1.")
+        probabilities = agency_probabilities
+    elif len(filtered_agencies) < len(agencies):
         probabilities = [1.0 / len(filtered_agencies)] * len(filtered_agencies)
     else:
-        # Otherwise, use the default probabilities
-        probabilities = [0.72, 0.17, 0.11]
+        probabilities = [0.72, 0.15, 0.10, 0.03]
 
     # Generate the agency column with the specified distribution
     agency_choices = np.random.choice(filtered_agencies, size=num_records, p=probabilities)
 
     # Map agency to prefix
-    agency_prefix = {"LAW": "L", "EMS": "M", "FIRE": "F"}
+    agency_prefix = {"LAW": "L", "EMS": "M", "FIRE": "F", "RESCUE": "R"}
 
     # Set default start and end dates if not provided
     if start_date is None:
@@ -375,7 +426,8 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     agency_counters = {
         "L": get_start_number(),
         "M": get_start_number(),
-        "F": get_start_number()
+        "F": get_start_number(),
+        "R": get_start_number()
     }
     call_ids_full = []
 
@@ -514,6 +566,8 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
             return fake.fire_problem()
         elif agency == "EMS":
             return fake.ems_problem()
+        elif agency == "RESCUE":
+            return fake.rescue_problem()
         else:
             return None
 
@@ -522,6 +576,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     fake.add_provider(fire_problem_provider)
     fake.add_provider(ems_problem_provider)
     fake.add_provider(disposition_provider)
+    fake.add_provider(rescue_problem_provider)
 
     df_full["problem"] = df_full["agency"].apply(assign_problem)
 
@@ -535,6 +590,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     law_priority_map = {problem: priority for problem, priority in LAW_PROBLEMS}
     fire_priority_map = {problem: priority for problem, priority in FIRE_PROBLEMS}
     ems_priority_map = {problem: priority for problem, priority in EMS_PROBLEMS}
+    rescue_priority_map = {problem: priority for problem, priority in RESCUE_PROBLEMS}
 
     # Function to assign priority number based on agency and problem
     def assign_priority(row):
@@ -550,6 +606,9 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         elif agency == "EMS":
             # Use the ems priority map, default to 3 if problem not found
             return ems_priority_map.get(problem, 3)
+        elif agency == "RESCUE":
+            # Use the rescue priority map, default to 3 if problem not found
+            return rescue_priority_map.get(problem, 3)
         else:
             # Default priority for unknown agency
             return 3
@@ -689,13 +748,13 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     )
 
     law_dispositions = DISPOSITIONS
-nonlaw_dispositions = [d for d in DISPOSITIONS if d != "ARREST MADE"]
+    nonlaw_dispositions = [d for d in DISPOSITIONS if d != "ARREST MADE"]
 
-def assign_disposition(agency):
-    if agency == "LAW":
-        return fake.disposition()
-    else:
-        return random.choice(nonlaw_dispositions)
+    def assign_disposition(agency):
+        if agency == "LAW":
+            return fake.disposition()
+        else:
+            return random.choice(nonlaw_dispositions)
 
     # Add disposition column with random dispositions
     df_full["disposition"] = df_full["agency"].apply(assign_disposition)
@@ -711,7 +770,7 @@ def assign_disposition(agency):
         "time_call_closed",
     ]
 
-    # Format each datetime column as 'MMMM-YY-DD HH:mm:ss'
+    # Format each datetime column as 'YYYY-MM-DD HH:mm:ss'
     for col in datetime_cols:
         df_full[col] = df_full[col].dt.strftime("%Y-%m-%d %H:%M:%S")
         
@@ -782,7 +841,13 @@ def main():
                 'name': 'selected_agencies',
                 'message': 'Enter agencies to include (comma-separated, e.g., LAW,FIRE):',
                 'default': ''
-            }
+            },
+            {
+                'type': 'input',
+                'name': 'agency_probabilities',
+                'message': 'Enter agency probabilities (comma-separated, e.g., 0.7,0.2,0.1):',
+                'default': '',
+            },
         ]
 
         answers = prompt(questions)
@@ -794,6 +859,13 @@ def main():
         locale = answers['locale']
         output_file = answers['output_file']
         selected_agencies = answers['selected_agencies'].split(',') if answers['selected_agencies'] else None
+        agency_probabilities = None
+        if answers.get('agency_probabilities'):
+            try:
+                agency_probabilities = [float(x) for x in answers['agency_probabilities'].split(',')]
+            except Exception:
+                print("Invalid agency probabilities format. Must be comma-separated floats.")
+                sys.exit(1)
     else:
         # Command-line argument mode
         parser = argparse.ArgumentParser(description="Generate synthetic 911 dispatch data")
@@ -811,6 +883,8 @@ def main():
                             help='Output file path (default: computer_aided_dispatch.csv)')
         parser.add_argument('-a', '--agencies', type=str, default='',
                             help='Comma-separated list of agencies to include (e.g., LAW,FIRE)')
+        parser.add_argument('--agency-probabilities', type=str, default='',
+                            help='Comma-separated probabilities for selected agencies (e.g., 0.7,0.2,0.1)')
 
         args = parser.parse_args()
 
@@ -829,6 +903,13 @@ def main():
         locale = args.locale
         output_file = args.output_file
         selected_agencies = args.agencies.split(',') if args.agencies else None
+        agency_probabilities = None
+        if args.agency_probabilities:
+            try:
+                agency_probabilities = [float(x) for x in args.agency_probabilities.split(',')]
+            except Exception:
+                print("Invalid agency probabilities format. Must be comma-separated floats.")
+                sys.exit(1)
 
     # Generate data with specified parameters
     df_full, call_taker_names, dispatcher_names = generate_911_data(
@@ -837,7 +918,8 @@ def main():
         end_date=end_date,
         num_names=num_names,
         locale=locale,
-        selected_agencies=selected_agencies
+        selected_agencies=selected_agencies,
+        agency_probabilities=agency_probabilities
     )
 
     # Save the DataFrame to a CSV file

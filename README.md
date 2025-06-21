@@ -189,6 +189,7 @@ Generated data is saved in CSV format with the following columns:
 | `agency` | Responding agency | EMS |
 | `dispatcher` | Dispatcher name | Sarah Johnson |
 | `status` | Incident status | Dispatched |
+| `disposition` | Final outcome | Resolved |
 
 ## 🔧 API Reference
 
