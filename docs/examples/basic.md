@@ -376,9 +376,19 @@ except Exception as e:
     print(f"Error: {e}")
 ```
 
+## 📚 Related Documentation
+
+- [Architecture Overview](../architecture.md)
+- [Entity Relationship Diagram](../er-diagram.md)
+- [Core API Reference](../api/core.md)
+- [Constants API Reference](../api/constants.md)
+
+For more, see the [README](../../README.md) and the `/docs` directory.
+
 ---
 
-**Next Steps**: 
+**Next Steps**:
+
 - Explore [Advanced Examples](advanced.md) for complex scenarios
 - Check [Integration Examples](integration.md) for third-party integrations
-- Review [Customization Examples](customization.md) for extending functionality 
+- Review [Customization Examples](customization.md) for extending functionality

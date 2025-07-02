@@ -23,3 +23,11 @@ Install dependencies with:
 ```bash
 uv pip install -r ../../requirements.txt
 ```
+
+## 📚 Related Documentation
+
+- [Entity Relationship Diagram](../er-diagram.md)
+- [Core API Reference](../api/core.md)
+- [Dependencies](../dependencies.md)
+
+For more, see the [README](../../README.md) and the `/docs` directory.

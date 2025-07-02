@@ -62,16 +62,37 @@ def generate_synthetic_data(
 
 Returns a pandas DataFrame containing the generated synthetic data with the following columns:
 
-- `incident_id`: Unique incident identifier
-- `timestamp`: Date and time of the incident
-- `caller_name`: Name of the person reporting
-- `caller_phone`: Phone number
-- `location`: Incident address
-- `incident_type`: Type of emergency
-- `priority`: Priority level (1-5)
+- `call_id`: Unique call identifier
 - `agency`: Responding agency
+- `event_time`: Date and time of event
+- `day_of_year`: Day of the year (1-366)
+- `week_no`: ISO week number
+- `hour`: Hour of day (0-23)
+- `day_night`: Day or night indicator
+- `dow`: Day of week (0=Mon, 6=Sun)
+- `shift`: Shift name or number
+- `shift_part`: Part of shift (e.g., start/end)
+- `problem`: Reported problem/incident type
+- `address`: Incident address
+- `priority_number`: Priority level (numeric)
+- `call_taker`: Name of call taker
+- `call_reception`: Time call was received
 - `dispatcher`: Dispatcher name
-- `status`: Incident status
+- `queue_time`: Time call was queued (seconds)
+- `dispatch_time`: Time units dispatched (seconds)
+- `phone_time`: Time on phone (seconds)
+- `ack_time`: Time dispatch acknowledged (secs)
+- `enroute_time`: Time units en route (seconds)
+- `on_scene_time`: Time units on scene (seconds)
+- `process_time`: Processing time (seconds)
+- `total_time`: Total call time (seconds)
+- `time_call_queued`: Timestamp call queued
+- `time_call_dispatched`: Timestamp call dispatched
+- `time_call_acknowledged`: Timestamp dispatch acknowledged
+- `time_call_disconnected`: Timestamp call disconnected
+- `time_unit_enroute`: Timestamp units en route
+- `time_call_closed`: Timestamp call closed
+- `disposition`: Final outcome
 
 #### Example Usage
 
@@ -426,9 +447,19 @@ def validate_generated_data(data: pd.DataFrame) -> bool:
     return True
 ```
 
+## 📚 Related Documentation
+
+- [Architecture Overview](../architecture.md)
+- [Architecture Decision Records (ADR)](../adr-0001-initial-architecture.md)
+- [Entity Relationship Diagram](../er-diagram.md)
+- [Deployment Guide](../deployment.md)
+
+For more, see the [README](../../README.md) and the `/docs` directory.
+
 ---
 
-**See Also**: 
+**See Also**:
+
 - [GUI API](gui.md) - Tkinter interface documentation
 - [CLI API](cli.md) - Command-line interface documentation
 - [Constants API](constants.md) - Configuration constants

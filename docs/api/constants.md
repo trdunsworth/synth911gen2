@@ -93,7 +93,7 @@ Mapping of agencies to their associated incident types.
 INCIDENT_TYPES = {
     "LAW": [
         "Traffic Accident",
-        "Domestic Disturbance", 
+        "Domestic Disturbance",
         "Burglary",
         "Assault",
         "Suspicious Activity",
@@ -104,7 +104,7 @@ INCIDENT_TYPES = {
     "FIRE": [
         "Structure Fire",
         "Vehicle Fire",
-        "Brush Fire", 
+        "Brush Fire",
         "Medical Emergency",
         "Hazardous Materials",
         "Gas Leak",
@@ -133,8 +133,8 @@ INCIDENT_TYPES = {
 }
 ```
 
-**Type**: `Dict[str, List[str]]`  
-**Description**: Incident types associated with each agency  
+**Type**: `Dict[str, List[str]]`
+**Description**: Incident types associated with each agency
 **Usage**: Used to generate realistic incident data
 
 ### `PRIORITY_LEVELS`
@@ -145,8 +145,8 @@ Available priority levels for incidents.
 PRIORITY_LEVELS = [1, 2, 3, 4, 5]
 ```
 
-**Type**: `List[int]`  
-**Description**: Valid priority levels (1 = highest, 5 = lowest)  
+**Type**: `List[int]`
+**Description**: Valid priority levels (1 = highest, 5 = lowest)
 **Usage**: Used for priority assignment and validation
 
 ### `PRIORITY_DESCRIPTIONS`
@@ -156,15 +156,15 @@ Human-readable descriptions for priority levels.
 ```python
 PRIORITY_DESCRIPTIONS = {
     1: "Immediate - Life threatening",
-    2: "High - Serious injury/illness", 
+    2: "High - Serious injury/illness",
     3: "Medium - Non-life threatening",
     4: "Low - Minor injury/illness",
     5: "Non-emergency - Information/assistance"
 }
 ```
 
-**Type**: `Dict[int, str]`  
-**Description**: Description of each priority level  
+**Type**: `Dict[int, str]`
+**Description**: Description of each priority level
 **Usage**: Used in GUI and documentation
 
 ## 📅 Date and Time Configuration
@@ -178,8 +178,8 @@ DEFAULT_START_DATE = "2024-01-01"
 DEFAULT_END_DATE = "2024-12-31"
 ```
 
-**Type**: `str`  
-**Description**: Default start and end dates in YYYY-MM-DD format  
+**Type**: `str`
+**Description**: Default start and end dates in YYYY-MM-DD format
 **Usage**: Used when no date range is specified
 
 ### `TIME_PATTERNS`
@@ -195,8 +195,8 @@ TIME_PATTERNS = {
 }
 ```
 
-**Type**: `Dict[str, Any]`  
-**Description**: Time patterns for realistic call distribution  
+**Type**: `Dict[str, Any]`
+**Description**: Time patterns for realistic call distribution
 **Usage**: Used in data generation algorithms
 
 ## 🔧 Application Configuration
@@ -215,8 +215,8 @@ DEFAULT_SETTINGS = {
 }
 ```
 
-**Type**: `Dict[str, Any]`  
-**Description**: Default values for application settings  
+**Type**: `Dict[str, Any]`
+**Description**: Default values for application settings
 **Usage**: Used as fallback when settings aren't specified
 
 ### `FILE_EXTENSIONS`
@@ -227,8 +227,8 @@ Supported file extensions for output.
 FILE_EXTENSIONS = [".csv", ".json", ".xlsx"]
 ```
 
-**Type**: `List[str]`  
-**Description**: Supported output file formats  
+**Type**: `List[str]`
+**Description**: Supported output file formats
 **Usage**: Used for file validation and GUI file dialogs
 
 ## 🔍 Validation Functions
@@ -252,6 +252,7 @@ def validate_locale(locale: str) -> bool:
 ```
 
 **Parameters**:
+
 - `locale` (str): Locale string to validate
 
 **Returns**: `bool` - True if supported, False otherwise
@@ -277,6 +278,7 @@ def validate_agency(agency: str) -> bool:
 ```
 
 **Parameters**:
+
 - `agency` (str): Agency string to validate
 
 **Returns**: `bool` - True if supported, False otherwise
@@ -302,6 +304,7 @@ def validate_priority(priority: int) -> bool:
 ```
 
 **Parameters**:
+
 - `priority` (int): Priority level to validate
 
 **Returns**: `bool` - True if valid, False otherwise
@@ -492,6 +495,7 @@ def get_generation_config(user_config):
 To add a new locale:
 
 1. Add to `SUPPORTED_LOCALES`:
+
    ```python
    SUPPORTED_LOCALES.append("pt_PT")  # Portuguese (Portugal)
    ```
@@ -504,16 +508,19 @@ To add a new locale:
 To add a new agency:
 
 1. Add to `DEFAULT_AGENCIES`:
+
    ```python
    DEFAULT_AGENCIES.append("BOMB")  # Bomb squad
    ```
 
 2. Add to `AGENCY_DESCRIPTIONS`:
+
    ```python
    AGENCY_DESCRIPTIONS["BOMB"] = "Bomb Squad"
    ```
 
 3. Add incident types to `INCIDENT_TYPES`:
+
    ```python
    INCIDENT_TYPES["BOMB"] = [
        "Suspicious Package",
@@ -534,9 +541,18 @@ DEFAULT_SETTINGS["num_records"] = 5000
 DEFAULT_SETTINGS["enable_logging"] = True
 ```
 
+## 📚 Related Documentation
+
+- [Architecture Overview](../architecture.md)
+- [Dependencies](../dependencies.md)
+- [Data Security](../data-security.md)
+
+For more, see the [README](../../README.md) and the `/docs` directory.
+
 ---
 
-**See Also**: 
+**See Also**:
+
 - [Core API](core.md) - Main data generation functions
-- [GUI API](gui.md) - Tkinter interface components  
+- [GUI API](gui.md) - Tkinter interface components
 - [CLI API](cli.md) - Command-line interface functions

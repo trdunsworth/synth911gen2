@@ -317,6 +317,15 @@ pip install -r requirements.txt
 pip install --upgrade -r requirements.txt
 ```
 
+## 📚 Related Documentation
+
+- [Deployment Guide](../deployment.md)
+- [Data Security](../data-security.md)
+- [Onboarding Guide](../onboarding.md)
+- [Dependencies](../dependencies.md)
+
+For more, see the [README](../../README.md) and the `/docs` directory.
+
 ---
 
 **Next Steps**: After installation, proceed to the [Quick Start Guide](quickstart.md) to begin using Synth911Gen2. 

@@ -1,10 +1,12 @@
 # Synth911Gen2 - Synthetic 911 Dispatch Data Generator
 
+> **Full documentation is available in [`docs/README.md`](docs/README.md).**
+
 A comprehensive Python application for generating realistic synthetic 911 dispatch data for testing, training, and development purposes. This tool creates anonymized emergency dispatch records that maintain statistical patterns and relationships found in real emergency data.
 
-## 🚨 Features
+## Features
 
-- **Multi-Interface Support**: GUI (Tkinter) and command-line interfaces
+- **Multi-Interface Support**: GUI (Tkinter), command-line, and text-based (TUI) interfaces
 - **Multi-Language Support**: Generate data in 14+ locales including English, French, German, Spanish, and more
 - **Flexible Data Generation**: Customizable number of records, date ranges, and agency types
 - **Realistic Data Patterns**: Maintains realistic relationships between emergency types, times, and locations
@@ -12,7 +14,7 @@ A comprehensive Python application for generating realistic synthetic 911 dispat
 - **Headless Mode**: Perfect for automated data generation and CI/CD pipelines
 - **Web Interface**: Optional Flask-based web GUI for remote access
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
@@ -20,6 +22,7 @@ A comprehensive Python application for generating realistic synthetic 911 dispat
   - [GUI Mode](#gui-mode)
   - [Command Line Mode](#command-line-mode)
   - [Interactive Mode](#interactive-mode)
+  - [TUI (Text User Interface) Mode](#tui-text-user-interface-mode)
   - [Web Interface](#web-interface)
 - [Configuration](#configuration)
 - [Data Format](#data-format)
@@ -27,8 +30,9 @@ A comprehensive Python application for generating realistic synthetic 911 dispat
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
+- [Documentation](#documentation)
 
-## 🛠️ Installation
+## Installation
 
 ### Prerequisites
 
@@ -51,7 +55,7 @@ uv sync
 python main.py --help
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### GUI Mode (Recommended for beginners)
 
@@ -78,7 +82,20 @@ uv run main.py --cli -n 12000 -s 2024-01-01 -e 2024-12-31 -l en_GB -a "FIRE,EMS"
 python main.py --interactive
 ```
 
-## 📖 Usage
+### TUI (Text User Interface) Mode
+
+The TUI provides a terminal-based interactive experience for generating data:
+
+```bash
+python tui.py
+
+# Start the TUI using uv
+uv run tui.py
+```
+
+This mode is ideal for users who prefer keyboard navigation and a fast, text-based workflow.
+
+## Usage
 
 ### GUI Mode
 
@@ -134,6 +151,16 @@ python main.py --interactive
 
 This mode prompts for each setting and validates input before generation.
 
+### TUI (Text User Interface) Mode
+
+The TUI provides a terminal-based interactive experience for generating data:
+
+```bash
+python tui.py
+```
+
+This mode is ideal for users who prefer keyboard navigation and a fast, text-based workflow.
+
 ### Web Interface
 
 For remote access or server deployment:
@@ -144,7 +171,7 @@ python webgui.py
 
 Access the web interface at `http://localhost:5000`
 
-## ⚙️ Configuration
+## Configuration
 
 ### Supported Locales
 
@@ -173,25 +200,45 @@ Common emergency agency types include:
 - `EMS` - Emergency medical services
 - `RESCUE` - Search and rescue
 
-## 📊 Data Format
+## Data Format
 
 Generated data is saved in CSV format with the following columns:
 
-| Column | Description | Example |
-|--------|-------------|---------|
-| `incident_id` | Unique incident identifier | INC-2024-001234 |
-| `timestamp` | Date and time of incident | 2024-03-15 14:30:22 |
-| `caller_name` | Name of person reporting | John Smith |
-| `caller_phone` | Phone number | (555) 123-4567 |
-| `location` | Incident address | 123 Main St, Anytown, ST |
-| `incident_type` | Type of emergency | Medical Emergency |
-| `priority` | Priority level (1-5) | 2 |
-| `agency` | Responding agency | EMS |
-| `dispatcher` | Dispatcher name | Sarah Johnson |
-| `status` | Incident status | Dispatched |
-| `disposition` | Final outcome | Resolved |
+| Column                | Description                        | Example                  |
+|-----------------------|------------------------------------|--------------------------|
+| `call_id`             | Unique call identifier              | CALL-2024-000123         |
+| `agency`              | Responding agency                   | EMS                      |
+| `event_time`          | Date and time of event              | 2024-03-15 14:30:22      |
+| `day_of_year`         | Day of the year (1-366)             | 74                       |
+| `week_no`             | ISO week number                     | 11                       |
+| `hour`                | Hour of day (0-23)                  | 14                       |
+| `day_night`           | Day or night indicator              | Day                      |
+| `dow`                 | Day of week (0=Mon, 6=Sun)          | 2                        |
+| `shift`               | Shift name or number                | A                        |
+| `shift_part`          | Part of shift (e.g., start/end)     | Start                    |
+| `problem`             | Reported problem/incident type      | Medical Emergency        |
+| `address`             | Incident address                    | 123 Main St, Anytown     |
+| `priority_number`     | Priority level (numeric)            | 2                        |
+| `call_taker`          | Name of call taker                  | John Smith               |
+| `call_reception`      | Time call was received              | 2024-03-15 14:29:50      |
+| `dispatcher`          | Dispatcher name                     | Sarah Johnson            |
+| `queue_time`          | Time call was queued (seconds)      | 50                       |
+| `dispatch_time`       | Time units dispatched (seconds)     | 100                      |
+| `phone_time`          | Time on phone (seconds)             | 150                      |
+| `ack_time`            | Time dispatch acknowledged (secs)   | 20                       |
+| `enroute_time`        | Time units en route (seconds)       | 600                      |
+| `on_scene_time`       | Time units on scene (seconds)       | 3600                     |
+| `process_time`        | Processing time (seconds)           | 40                       |
+| `total_time`          | Total call time (seconds)           | 70                       |
+| `time_call_queued`    | Timestamp call queued               | 2024-03-15 14:30:00      |
+| `time_call_dispatched`| Timestamp call dispatched           | 2024-03-15 14:30:10      |
+| `time_call_acknowledged`| Timestamp dispatch acknowledged   | 2024-03-15 14:30:20      |
+| `time_call_disconnected`| Timestamp call disconnected       | 2024-03-15 14:32:00      |
+| `time_unit_enroute`   | Timestamp units en route            | 2024-03-15 14:30:30      |
+| `time_call_closed`    | Timestamp call closed               | 2024-03-15 14:33:00      |
+| `disposition`         | Final outcome                       | Resolved                 |
 
-## 🔧 API Reference
+## API Reference
 
 ### Core Modules
 
@@ -199,8 +246,10 @@ Generated data is saved in CSV format with the following columns:
 - `synth911gen.py` - Core data generation engine
 - `synthgui.py` - Tkinter GUI interface
 - `synthgui_headless.py` - Command-line and interactive interfaces
+- `tui.py` - Text-based user interface (TUI)
 - `webgui.py` - Flask web interface
 - `shared/constants.py` - Shared configuration and constants
+- `test_tui_and_gen.py` - Test script for TUI and generator
 
 ### Key Functions
 
@@ -217,17 +266,19 @@ data = generate_synthetic_data(
 )
 ```
 
-## 🧪 Development
+## Development
 
 ### Project Structure
 
-```
+```python
 synth911gen2/
 ├── main.py                 # Main entry point
 ├── synth911gen.py         # Core data generation
 ├── synthgui.py            # Tkinter GUI
 ├── synthgui_headless.py   # CLI interface
+├── tui.py                 # Text-based user interface (TUI)
 ├── webgui.py              # Web interface
+├── test_tui_and_gen.py    # TUI and generator test script
 ├── shared/
 │   ├── __init__.py
 │   └── constants.py       # Shared constants
@@ -242,6 +293,9 @@ synth911gen2/
 ```bash
 # Run all tests
 pytest
+
+# Run TUI and generator tests
+python test_tui_and_gen.py
 
 # Run with coverage
 pytest --cov=synth911gen2
@@ -260,7 +314,7 @@ ruff check .
 ty .
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -276,21 +330,39 @@ ty .
 - Write tests for new features
 - Update documentation as needed
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## Support
 
 - **Issues**: Report bugs and feature requests on GitHub
 - **Documentation**: See the `/docs` directory for detailed documentation
 - **Examples**: Check the `/examples` directory for usage examples
 
-## 🔗 Related Projects
+## Related Projects
 
 - [Faker](https://github.com/joke2k/faker) - Python library for generating fake data
 - [Pandas](https://pandas.pydata.org/) - Data manipulation and analysis
 - [Flask](https://flask.palletsprojects.com/) - Web framework for the web interface
+- [Fireduck](https://github.com/tonybaloney/fireduck) - Fast CSV/Parquet/Feather/Arrow file reader for Python
+- [uv](https://github.com/astral-sh/uv) - Extremely fast Python package installer and resolver
+- [ruff](https://github.com/astral-sh/ruff) - Extremely fast Python linter and code formatter
+- [Textual](https://github.com/Textualize/textual) - Modern TUI (Text User Interface) framework for Python
+
+## Documentation
+
+The following documentation files are available for Synth911Gen2:
+
+- [Architecture Overview](docs/architecture.md)
+- [Architecture Decision Records (ADR)](docs/adr-0001-initial-architecture.md)
+- [Onboarding Guide](docs/onboarding.md)
+- [Deployment Guide](docs/deployment.md)
+- [Data Security](docs/data-security.md)
+- [Dependencies](docs/dependencies.md)
+- [Entity Relationship Diagram](docs/er-diagram.md)
+
+These documents are auto-generated and should be reviewed for accuracy and completeness. See the `/docs` directory for additional guides, API references, and examples.
 
 ---
 

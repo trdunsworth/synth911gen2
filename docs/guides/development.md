@@ -546,6 +546,16 @@ Before submitting a pull request:
 3. **Performance Issues**: Use profiling tools
 4. **Memory Issues**: Monitor memory usage with large datasets
 
+## 📚 Related Documentation
+
+- [Architecture Overview](../architecture.md)
+- [Architecture Decision Records (ADR)](../adr-0001-initial-architecture.md)
+- [Deployment Guide](../deployment.md)
+- [Data Security](../data-security.md)
+- [Dependencies](../dependencies.md)
+
+For more, see the [README](../../README.md) and the `/docs` directory.
+
 ---
 
 **Next Steps**: 

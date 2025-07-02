@@ -243,6 +243,14 @@ Now that you've generated your first dataset, explore:
 - **Examples**: Look at the examples directory for working code
 - **GitHub**: Report bugs or request features
 
+## 📚 Related Documentation
+
+- [Onboarding Guide](../onboarding.md)
+- [Deployment Guide](../deployment.md)
+- [Entity Relationship Diagram](../er-diagram.md)
+
+For more, see the [README](../../README.md) and the `/docs` directory.
+
 ---
 
 **Congratulations!** You've successfully generated your first synthetic 911 dispatch dataset. 🎉
