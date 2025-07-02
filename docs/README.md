@@ -79,5 +79,5 @@ This documentation is maintained alongside the codebase. If you find any issues 
 
 ---
 
-**Last Updated**: December 2024  
-**Version**: 0.1.0
+**Last Updated**: May 2025
+**Version**: 0.5.0

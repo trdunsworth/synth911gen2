@@ -86,11 +86,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
-### Version 0.1.0 (Current)
-- **Release Date**: December 19, 2024
+### Version 0.5.0 (2025-06-19)
+- **Release Date**: June 19, 2025
 - **Status**: Initial release
 - **Features**: Core functionality, multi-interface support, localization
 - **Stability**: Production ready
+
+### Version 0.7.0 (Current)
+- **Release Date**: July 02, 2025
+- **Status**: Release candidate
+- **Features**: Added support for RESCUE agency, improved CLI options, enhanced documentation
+- **Stability**: Stable, ready for production use
 
 ---
 
