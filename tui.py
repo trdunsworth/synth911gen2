@@ -70,6 +70,8 @@ class SynthTUI(App):
     def __init__(self):
         super().__init__()
         self.inputs = []
+        self.progress = ProgressBar(total=100)
+        self.status = Static("")
 
     def compose(self) -> ComposeResult:
         for param, prompt in zip(self.params, self.param_prompts):
@@ -77,9 +79,7 @@ class SynthTUI(App):
             self.inputs.append(inp)
             yield inp
         yield Button("Generate Data", id="generate", variant="success")
-        self.progress = ProgressBar(total=100)
         yield self.progress
-        self.status = Static("")
         yield self.status
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -107,11 +107,11 @@ class SynthTUI(App):
             if end_date_obj <= start_date_obj:
                 self.status.update("[b red]Error: End date must be after start date.[/b red]")
                 return
-        except Exception as e:
+        except ValueError as e:
             self.status.update(f"[b red]Date error: {e}[/b red]")
             return
         await asyncio.sleep(0.5)
-        df, call_taker_names, dispatcher_names = generate_911_data(
+        df, _, dispatcher_names = generate_911_data(
             num_records=params["num_records"],
             start_date=params["start_date"],
             end_date=params["end_date"],
