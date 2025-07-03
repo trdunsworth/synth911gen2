@@ -1,13 +1,20 @@
+"""
+A text-based User Interface Application for demonstrating widgets.
+
+This application showcases various TUI widgets including Input, Button,
+Static, ProgressBar, and Vertical containers.
+"""
+
+import asyncio
+
+from datetime import datetime
 from textual.app import App, ComposeResult
-from textual.widgets import Input, Button, Static, ProgressBar
 from textual.containers import Vertical
 from textual.reactive import reactive
-from textual import events
-import asyncio
-import sys
-import os
+from textual.widgets import Button, Input, ProgressBar, Static
 
-from synth911gen import generate_911_data, DEFAULT_LOCALE
+
+from synth911gen import DEFAULT_LOCALE, generate_911_data
 
 DEFAULTS = {
     "num_records": "10000",
@@ -31,7 +38,7 @@ class ParamInput(Vertical):
     def compose(self):
         input_widget = Input(placeholder=f"Default: {self.default}")
         input_widget.border_title = self.prompt
-        input_widget.styles.border_color = "cyan"
+        input_widget.styles.border_title_color = "cyan"
         input_widget.styles.color = "yellow"
         self.input = input_widget
         yield input_widget
@@ -60,8 +67,11 @@ class SynthTUI(App):
     ]
     values = reactive({})
 
-    def compose(self) -> ComposeResult:
+    def __init__(self):
+        super().__init__()
         self.inputs = []
+
+    def compose(self) -> ComposeResult:
         for param, prompt in zip(self.params, self.param_prompts):
             inp = ParamInput(param, prompt, DEFAULTS[param])
             self.inputs.append(inp)
@@ -79,7 +89,6 @@ class SynthTUI(App):
             await self.run_generation()
 
     async def run_generation(self):
-        from datetime import datetime
         params = {inp.param: inp.get_value() for inp in self.inputs}
         params["num_records"] = int(params["num_records"])
         params["num_names"] = int(params["num_names"])
