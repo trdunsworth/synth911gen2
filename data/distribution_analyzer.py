@@ -1,7 +1,9 @@
-import pandas as pd
+import sys
+
+import fireducks.pandas as pd
 import numpy as np
 from scipy import stats
-import sys
+
 
 # Load the CSV, automatically handling NULLs as NaN
 if len(sys.argv) > 1:
