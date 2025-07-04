@@ -1,37 +1,72 @@
 #!/usr/bin/env python
+"""
+Core data generation engine for Synth911Gen2.
 
-import fireducks.pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-import random
-from faker import Faker
-from faker.providers import DynamicProvider
+This module provides the main logic for generating synthetic 911 dispatch data, including problem/priority assignment, agency selection, time calculations, and output formatting. It supports both programmatic and CLI/interactive usage. The module also includes input sanitization utilities and compatibility handling for optional dependencies.
+"""
+
 import argparse
+import random
 import re
 import sys
+from datetime import datetime, timedelta
+from typing import Any
+
+import numpy as np
+import pandas as pd
+from faker import Faker
+from faker.providers import DynamicProvider
+
 from shared.constants import DEFAULT_LOCALE, validate_locale
 
 # Try to import PyInquirer, but provide fallback if it's not available
+class ValidationError(Exception):
+    """
+    Custom validation error for input validation.
+
+    Args:
+        message (str): The error message to display.
+        cursor_position (int): The position in the input where the error occurred.
+    """
+    def __init__(self, message, cursor_position):
+        self.message = message
+        self.cursor_position = cursor_position
+        super().__init__(message)
+
 try:
-    from PyInquirer import prompt, Validator, ValidationError
+    from PyInquirer import prompt, Validator
     PYINQUIRER_AVAILABLE = True
 except ImportError:
     print("Warning: PyInquirer is not available. Using command-line arguments instead.")
     PYINQUIRER_AVAILABLE = False
 
-    # Define a simple validator class for compatibility
-    class Validator:
-        def validate(self, document):
-            pass
+    # Define a dummy Validator base class if PyInquirer is not available
+    class Validator(object):
+        """
+        Dummy Validator base class for CLI fallback when PyInquirer is not available.
+        Used to maintain compatibility with code expecting a Validator base class.
+        """
 
-    class ValidationError(Exception):
-        def __init__(self, message, cursor_position):
-            self.message = message
-            self.cursor_position = cursor_position
-            super().__init__(message)
+    def prompt(*args, **kwargs):
+        """
+        Dummy prompt function for CLI fallback when PyInquirer is not available.
+        Raises a RuntimeError to indicate that interactive prompts are not supported.
+        """
+        raise RuntimeError("PyInquirer is not available. CLI mode only.")
 
 def sanitize_input(user_input):
-    # Regular expression to match allowed characters
+    """
+    Sanitize user input to allow only letters, numbers, spaces, and hyphens.
+
+    Args:
+        user_input (str): The input string to sanitize.
+
+    Returns:
+        str: The sanitized input string.
+
+    Raises:
+        ValueError: If the input contains invalid characters.
+    """
     pattern = r'^[a-zA-Z0-9\s\-]+$'
     if not re.match(pattern, user_input):
         raise ValueError("Input contains invalid characters. Only letters, numbers, spaces, and hyphens are allowed.")
@@ -39,16 +74,12 @@ def sanitize_input(user_input):
 
 def sanitize_cli():
     """
-    A utility function to test input sanitization from the command line.
-    This is separate from the main data generation functionality.
+    Utility function to test input sanitization from the command line.
+    Parses a command-line argument and prints the sanitized result or error.
     """
     parser = argparse.ArgumentParser(description="Sanitize user input options in synth911gen.py")
-
-    # Example of a command-line argument
     parser.add_argument('--option', type=str, required=True, help='User input option')
-
     args = parser.parse_args()
-
     try:
         sanitized_option = sanitize_input(args.option)
         print(f"Sanitized Option: {sanitized_option}")
@@ -57,8 +88,6 @@ def sanitize_cli():
 
 # Note: This function is for testing sanitization only
 # The actual entry point is at the bottom of the file
-
-fake = None  # Will be initialized in generate_911_data with the specified locale
 
 # Law enforcement problems with their associated priority levels
 # Priority 1: Immediate response, life-threatening
@@ -301,18 +330,17 @@ disposition_provider = DynamicProvider(
 # Street address provider will be created in the generate_911_data function
 # after Faker is initialized with the specified locale
 
-# TODO: Hook this to a web interface to allow users to generate data on demand.
 
 def filter_agencies(agencies, selected_agencies):
     """
     Filter the list of agencies based on user selection.
 
     Args:
-        agencies (list): List of all available agencies
-        selected_agencies (list): List of agencies selected by the user
+        agencies (list): List of all available agencies.
+        selected_agencies (list): List of agencies selected by the user.
 
     Returns:
-        list: Filtered list of agencies
+        list: Filtered list of valid agencies.
     """
     if not selected_agencies:
         # If no selection made, return all agencies
@@ -328,8 +356,9 @@ def filter_agencies(agencies, selected_agencies):
 
 def generate_911_data(num_records=10000, start_date=None, end_date=None, num_names=8, locale=DEFAULT_LOCALE, selected_agencies=None, agency_probabilities=None):
     """
-    This function generates synthetic 911 dispatch data for a given number of records. This will output a CSV file with the generated data.
-    The data includes various fields such as call_id, agency, event_time, day_of_year, week_no, hour, day_night, dow, shift, shift_part, problem, address, priority_number, call_taker, call_reception, dispatcher, queue_time, dispatch_time, phone_time, ack_time, enroute_time, on_scene_time, process_time, total_time and time stamps for various events.
+    Generate synthetic 911 dispatch data for a given number of records.
+
+    The generated data includes fields such as call_id, agency, event_time, day_of_year, week_no, hour, day_night, dow, shift, shift_part, problem, address, priority_number, call_taker, call_reception, dispatcher, queue_time, dispatch_time, phone_time, ack_time, enroute_time, on_scene_time, process_time, total_time, and timestamps for various events.
 
     Args:
         num_records (int, optional): Number of records to generate. Defaults to 10000.
@@ -337,11 +366,11 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         end_date (str, optional): End date in YYYY-MM-DD format. Defaults to "2024-12-31".
         num_names (int, optional): Number of names to generate per shift. Defaults to 8.
         locale (str, optional): Faker locale for generating localized data. Defaults to "en_US".
-                               Examples: "en_GB" (British English), "fr_FR" (French), "de_DE" (German), etc.
         selected_agencies (list, optional): List of agencies to include. Defaults to None (all agencies).
         agency_probabilities (list, optional): List of probabilities for each agency. Defaults to None.
 
-        This needs to be run with the following setup: python synth911gen.py -n 10000 -s 2024-01-01 -e 2024-12-31 -o computer_aided_dispatch.csv
+    Returns:
+        tuple: (DataFrame of generated data, dict of call_taker names, dict of dispatcher names)
     """
     # Validate locale before proceeding
     if not validate_locale(locale):
@@ -349,11 +378,10 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         locale = DEFAULT_LOCALE
 
     # Initialize Faker with the specified locale
-    global fake
-    fake = Faker(locale)
+    local_fake = Faker(locale)
 
     # Generate address list with the specified locale
-    address_list = [fake.unique.street_address() for _ in range(2500)]
+    address_list = [local_fake.unique.street_address() for _ in range(2500)]
 
     # Create street address provider
     street_address_provider = DynamicProvider(
@@ -362,16 +390,19 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
 
     def generate_names(num_names=8):
         """
-        This function generates a list of random names using the Faker library. The number of names generated is determined by the num_names parameter.
-        The names are generated in the format "Last, First". This function is used to create call_taker and dispatcher names for the generated data and conforms to the most commonly used formats.
+        Generate a list of random names using the Faker library in "Last, First" format.
 
         Args:
-            num_names (int, optional): _description_. Defaults to 8.
+            num_names (int, optional): Number of names to generate. Defaults to 8.
 
         Returns:
-            dictionary: This returns a dictionary with keys A, B, C, D and values as lists of names.
+            list: List of generated names.
         """
-        return [f"{fake.last_name()}, {fake.first_name()}" for _ in range(num_names)]
+        if local_fake is None:
+            raise RuntimeError("Faker instance is not initialized.")
+        if not hasattr(local_fake, "last_name") or not hasattr(local_fake, "first_name"):
+            raise RuntimeError("Faker missing 'last_name' or 'first_name' provider.")
+        return [f"{local_fake.last_name()}, {local_fake.first_name()}" for _ in range(num_names)]
 
     call_taker_names = {key: generate_names(num_names) for key in ["A", "B", "C", "D"]}
     dispatcher_names = {key: generate_names(num_names) for key in ["A", "B", "C", "D"]}
@@ -441,7 +472,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     date_range = int((end_date_dt - start_date_dt).total_seconds())
     random_seconds = np.random.randint(0, date_range, size=num_records)
     datetimes_full = [
-        start_date_dt + timedelta(seconds=int(sec)) for sec in sorted(random_seconds)
+        start_date_dt + timedelta(seconds=int(sec)) for sec in sorted(random_seconds.tolist())
     ]
 
     # Create DataFrame
@@ -454,6 +485,8 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     )
 
     # Sort the DataFrame by event_time to ensure chronological order
+    if not isinstance(df_full, pd.DataFrame):
+        raise TypeError("df_full is not a pandas DataFrame!")
     df_full = df_full.sort_values("event_time").reset_index(drop=True)
 
     # Add day_of_year column
@@ -474,22 +507,15 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     df_full["dow"] = df_full["event_time"].dt.strftime("%a").str.upper()
 
     # Define the function to determine the shift
-    def determine_shift(row):
+    def determine_shift(row: pd.Series) -> str:
         """
-        This is a function to determine the shift based on the week number, day_night, and day of the week (dow).
-        The function uses the following logic:
-        - If the week number is even:
-            - DAY on MON, TUE, FRI, SAT -> A
-            - NIGHT on MON, TUE, FRI, SAT -> C
-            - DAY on WED, THU, SUN -> B
-            - NIGHT on WED, THU, SUN -> D
-        - This mirrors an existing shift pattern employed by agencies that use a 12 hour shift schedule.
+        Determine the shift based on week number, day_night, and day of the week.
 
         Args:
-            row (_type_): _description_
+            row (pd.Series): Row of the DataFrame containing week_no, day_night, and dow.
 
         Returns:
-            string: This returns the shift based on the logic defined above.
+            str: The shift label (A, B, C, or D).
         """
         if row["week_no"] % 2 == 0:
             if row["day_night"] == "DAY" and row["dow"] in ["MON", "TUE", "FRI", "SAT"]:
@@ -524,67 +550,87 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
                 "SAT",
             ]:
                 return "D"
+        # If no condition matches, return a default value
+        return "UNKNOWN"
 
     # Apply the function to create the shift column
     df_full["shift"] = df_full.apply(determine_shift, axis=1)
 
     # Define the function to determine the shift_part
-    def determine_shift_part(hour):
+    def determine_shift_part(hour: Any):
         """
-        This determines how the shift is divided into parts based on the hour of the day. This breaks a 12-hour shift into 3 parts:
+        Determine the shift part (EARLY, MIDS, LATE) based on the hour of the day.
 
         Args:
-            hour (int): This is the hour compoenent of the event_time datetime column.
+            hour (Any): The hour component of the event_time. Can be int, float, numpy type, or other.
 
         Returns:
-            string: A descriptor of the shift part based on the hour.
+            str: Descriptor of the shift part.
         """
-        if hour in [6, 7, 8, 9, 18, 19, 20, 21]:
+        # Accept only integer hours in the range 0-23
+        try:
+            hour = int(hour)
+        except Exception as exc:
+            raise ValueError(f"Hour value '{hour}' is not an integer.") from exc
+        if hour < 0 or hour > 23:
+            raise ValueError(f"Hour value '{hour}' is out of valid range (0-23).")
+        if hour in (6, 7, 8, 9, 18, 19, 20, 21):
             return "EARLY"
-        elif hour in [10, 11, 12, 13, 22, 23, 0, 1]:
+        elif hour in (10, 11, 12, 13, 22, 23, 0, 1):
             return "MIDS"
         else:
             return "LATE"
 
     # Apply the function to create the shift_part column
+    # Use Series.apply instead of DataFrame.apply for a single-column function
     df_full["shift_part"] = df_full["hour"].apply(determine_shift_part)
 
     # Assign problem type based on agency
     def assign_problem(agency):
         """
-        This function assigns a problem type based on the agency type. It uses the Faker library to generate random problems for each agency.
+        Assign a problem type based on the agency type using Faker providers.
 
         Args:
-            agency (string): This is the agency type (LAW, EMS, FIRE).
+            agency (str): The agency type (LAW, EMS, FIRE, RESCUE).
 
         Returns:
-            string: A random problem type based on the agency.
+            str: A random problem type for the agency.
         """
+        if local_fake is None:
+            raise RuntimeError("Faker instance is not initialized.")
         if agency == "LAW":
-            return fake.law_problem()
+            if not hasattr(local_fake, "law_problem"):
+                raise RuntimeError("Faker missing 'law_problem' provider.")
+            return local_fake.law_problem()
         elif agency == "FIRE":
-            return fake.fire_problem()
+            if not hasattr(local_fake, "fire_problem"):
+                raise RuntimeError("Faker missing 'fire_problem' provider.")
+            return local_fake.fire_problem()
         elif agency == "EMS":
-            return fake.ems_problem()
+            if not hasattr(local_fake, "ems_problem"):
+                raise RuntimeError("Faker missing 'ems_problem' provider.")
+            return local_fake.ems_problem()
         elif agency == "RESCUE":
-            return fake.rescue_problem()
+            if not hasattr(local_fake, "rescue_problem"):
+                raise RuntimeError("Faker missing 'rescue_problem' provider.")
+            return local_fake.rescue_problem()
         else:
             return None
 
     # Register the dynamic providers with Faker
-    fake.add_provider(law_problem_provider)
-    fake.add_provider(fire_problem_provider)
-    fake.add_provider(ems_problem_provider)
-    fake.add_provider(disposition_provider)
-    fake.add_provider(rescue_problem_provider)
+    local_fake.add_provider(law_problem_provider)
+    local_fake.add_provider(fire_problem_provider)
+    local_fake.add_provider(ems_problem_provider)
+    local_fake.add_provider(disposition_provider)
+    local_fake.add_provider(rescue_problem_provider)
 
     df_full["problem"] = df_full["agency"].apply(assign_problem)
 
     # Add address column with a street address
 
-    fake.add_provider(street_address_provider)
+    local_fake.add_provider(street_address_provider)
 
-    df_full["address"] = [fake.street_address() for _ in range(len(df_full))]
+    df_full["address"] = [local_fake.street_address() for _ in range(len(df_full))]
 
     # Create dictionaries to map problems to their priority numbers
     law_priority_map = {problem: priority for problem, priority in LAW_PROBLEMS}
@@ -594,6 +640,15 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
 
     # Function to assign priority number based on agency and problem
     def assign_priority(row):
+        """
+        Assign a priority number based on agency and problem.
+
+        Args:
+            row (pd.Series): Row of the DataFrame containing agency and problem.
+
+        Returns:
+            int: The priority number for the call.
+        """
         agency = row["agency"]
         problem = row["problem"]
 
@@ -619,13 +674,13 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     # Define a function to assign call_taker based on shift
     def assign_call_taker(shift):
         """
-        This function assigns a call_taker based on the shift. It uses the Faker library to generate random names for each shift.
+        Assign a call_taker name based on the shift.
 
         Args:
-            shift (string): This is the shift type (A, B, C, D).
+            shift (str): The shift label (A, B, C, D).
 
         Returns:
-            string: The name of the call_taker based on the shift.
+            str: The name of the call_taker.
         """
         return random.choice(call_taker_names[shift])
 
@@ -646,13 +701,13 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     # Define a function to assign dispatcher based on shift
     def assign_dispatcher(shift):
         """
-        This function assigns a dispatcher based on the shift. It uses the Faker library to generate random names for each shift.
+        Assign a dispatcher name based on the shift.
 
         Args:
-            shift (string): This is the shift type (A, B, C, D).
+            shift (str): The shift label (A, B, C, D).
 
         Returns:
-            string: The name of the dispatcher based on the shift.
+            str: The name of the dispatcher.
         """
         return random.choice(dispatcher_names[shift])
 
@@ -747,12 +802,22 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         df_full["total_time"], unit="s"
     )
 
-    law_dispositions = DISPOSITIONS
     nonlaw_dispositions = [d for d in DISPOSITIONS if d != "ARREST MADE"]
 
     def assign_disposition(agency):
+        """
+        Assign a disposition based on the agency type.
+
+        Args:
+            agency (str): The agency type (LAW, EMS, FIRE, RESCUE).
+
+        Returns:
+            str: The disposition for the call.
+        """
         if agency == "LAW":
-            return fake.disposition()
+            if local_fake is None or not hasattr(local_fake, "disposition"):
+                raise RuntimeError("Faker instance is not initialized or missing 'disposition' provider.")
+            return local_fake.disposition()
         else:
             return random.choice(nonlaw_dispositions)
 
@@ -777,20 +842,32 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
 
     return df_full, call_taker_names, dispatcher_names
 
-class DateValidator(Validator):
-    def validate(self, document):
-        try:
-            datetime.strptime(document.text, '%Y-%m-%d')
-        except ValueError:
-            raise ValidationError(
-                message='Please enter a valid date in YYYY-MM-DD format',
-                cursor_position=len(document.text)
-            )
+# Only define DateValidator if Validator is a valid class (not a dummy object or object itself)
+if (
+    'Validator' in globals()
+    and isinstance(Validator, type)
+    and Validator is not object
+    and Validator.__name__ != "object"
+    and issubclass(Validator, object)  # Ensure Validator is a proper class
+):
+    class DateValidator(Validator):
+        """
+        Validator for date input in YYYY-MM-DD format for interactive prompts.
+        """
+        def validate(self, document):
+            try:
+                datetime.strptime(document.text, '%Y-%m-%d')
+            except ValueError as exc:
+                raise ValidationError(
+                    message='Please enter a valid date in YYYY-MM-DD format',
+                    cursor_position=len(document.text)
+                ) from exc
 
 def main():
     """
-    This is the main entry point of the script. It provides an interactive command line interface
-    to generate 911 dispatch data and saves it to a CSV file.
+    Main entry point for the script.
+
+    Provides an interactive command line interface (if PyInquirer is available) or a standard CLI for generating 911 dispatch data and saving it to a CSV file. Handles argument parsing, validation, and output summary.
     """
 
     if PYINQUIRER_AVAILABLE:
@@ -850,7 +927,10 @@ def main():
             },
         ]
 
-        answers = prompt(questions)
+        if 'prompt' in globals() and callable(prompt):
+            answers = prompt(questions)
+        else:
+            raise RuntimeError("'prompt' is not available even though PyInquirer is installed.")
 
         num_records = int(answers['num_records'])
         start_date = answers['start_date']
@@ -860,12 +940,26 @@ def main():
         output_file = answers['output_file']
         selected_agencies = answers['selected_agencies'].split(',') if answers['selected_agencies'] else None
         agency_probabilities = None
-        if answers.get('agency_probabilities'):
-            try:
-                agency_probabilities = [float(x) for x in answers['agency_probabilities'].split(',')]
-            except Exception:
-                print("Invalid agency probabilities format. Must be comma-separated floats.")
-                sys.exit(1)
+        if answers.get('agency_probabilities') and isinstance(answers['agency_probabilities'], str):
+            agency_prob_str = answers['agency_probabilities'].strip()
+            if agency_prob_str.upper() == "NEVER":
+                agency_probabilities = None
+            elif agency_prob_str:  # Only process if not empty
+                try:
+                    # Only allow if all values are numeric
+                    if agency_prob_str.upper() == "NEVER":
+                        agency_probabilities = None
+                    else:
+                        prob_strings = [x.strip() for x in agency_prob_str.split(',')]
+                        if not all(re.match(r'^-?\d+(\.\d+)?$', s) for s in prob_strings):
+                            raise ValueError
+                        agency_probabilities = [float(x) for x in prob_strings]
+                except ValueError:
+                    print("Invalid agency probabilities format. Must be comma-separated floats.")
+                    sys.exit(1)
+        elif answers.get('agency_probabilities') and not isinstance(answers['agency_probabilities'], str):
+            print("Invalid agency probabilities input. Must be a comma-separated string of numbers.")
+            sys.exit(1)
     else:
         # Command-line argument mode
         parser = argparse.ArgumentParser(description="Generate synthetic 911 dispatch data")
@@ -905,11 +999,15 @@ def main():
         selected_agencies = args.agencies.split(',') if args.agencies else None
         agency_probabilities = None
         if args.agency_probabilities:
-            try:
-                agency_probabilities = [float(x) for x in args.agency_probabilities.split(',')]
-            except Exception:
-                print("Invalid agency probabilities format. Must be comma-separated floats.")
-                sys.exit(1)
+            agency_prob_str = args.agency_probabilities.strip()
+            if agency_prob_str.upper() == "NEVER":
+                agency_probabilities = None
+            elif agency_prob_str:  # Only process if not empty
+                try:
+                    agency_probabilities = [float(x) for x in agency_prob_str.split(',')]
+                except ValueError:
+                    print("Invalid agency probabilities format. Must be comma-separated floats.")
+                    sys.exit(1)
 
     # Generate data with specified parameters
     df_full, call_taker_names, dispatcher_names = generate_911_data(

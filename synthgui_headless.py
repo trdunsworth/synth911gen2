@@ -1,3 +1,11 @@
+"""
+Synth911Gen2 Headless CLI and Interactive Interface
+
+This module provides command-line and interactive (text-based) interfaces for generating
+synthetic 911 dispatch data. It supports both direct CLI argument parsing and step-by-step
+interactive prompts for user configuration.
+"""
+
 #!/usr/bin/env python
 
 import os

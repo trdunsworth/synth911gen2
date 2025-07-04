@@ -1,3 +1,11 @@
+"""
+CSV to JSON Serializer Utility
+
+This module provides a utility function to convert CSV files to JSON format.
+It includes an example usage that demonstrates how to create a sample CSV file
+and convert it to JSON for demonstration or testing purposes.
+"""
+
 import csv
 import json
 
@@ -23,7 +31,7 @@ def csv_to_json(csv_file_path, json_file_path):
 
 # Example usage:
 # Create a dummy CSV file for demonstration
-with open('input.csv', 'w', newline='') as f:
+with open('input.csv', 'w', newline='', encoding='utf-8') as f:
     writer = csv.writer(f)
     writer.writerow(['Name', 'Age', 'City'])
     writer.writerow(['John', '28', 'New York'])

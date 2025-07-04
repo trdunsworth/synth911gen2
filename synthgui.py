@@ -1,3 +1,10 @@
+"""
+Synth911Gen2 GUI (Tkinter-based Graphical User Interface)
+
+This module provides a graphical user interface for generating synthetic 911 dispatch data
+using Tkinter. It allows users to configure parameters and generate data via a desktop app.
+"""
+
 #!/usr/bin/env python
 
 import tkinter as tk

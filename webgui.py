@@ -1,3 +1,10 @@
+"""
+Web interface for Synth911Gen2.
+
+This module provides a Flask-based web application for generating synthetic 911 dispatch data
+via a browser interface. It includes input validation, form handling, and result display.
+"""
+
 from flask import Flask, request, render_template_string, jsonify
 import subprocess
 import os

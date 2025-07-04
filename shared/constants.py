@@ -1,6 +1,8 @@
 """
 Shared constants for the Synth911 application.
-Contains configuration values and options used across multiple modules.
+
+Contains configuration values and options used across multiple modules, including
+supported locales for Faker data generation and locale validation utilities.
 """
 
 # Default and supported locales for Faker data generation
@@ -26,13 +28,11 @@ SUPPORTED_LOCALES = [
 ]
 
 def validate_locale(locale):
-    """
-    Validate if a given locale is supported.
-    
+    """Validate if a given locale is supported.
+
     Args:
-        locale (str): The locale string to validate
-        
+        locale (str): The locale string to validate.
     Returns:
-        bool: True if the locale is supported, False otherwise
+        bool: True if the locale is supported, False otherwise.
     """
     return locale in SUPPORTED_LOCALES
