@@ -22,7 +22,7 @@ def generate_synthetic_data(
     num_names: int = 8,
     output_file: str = "computer_aided_dispatch.csv",
     agency_probabilities: Optional[List[float]] = None
-) -> pd.DataFrame:
+) -> pl.DataFrame:
     """
     Generate synthetic 911 dispatch data.
     
@@ -60,7 +60,7 @@ def generate_synthetic_data(
 
 #### Return Value
 
-Returns a pandas DataFrame containing the generated synthetic data with the following columns:
+Returns a polars DataFrame containing the generated synthetic data with the following columns:
 
 - `call_id`: Unique call identifier
 - `agency`: Responding agency
@@ -199,7 +199,7 @@ class DataGenerator:
             locale (str): Faker locale for data generation
         """
         
-    def generate_records(self, num_records: int, **kwargs) -> pd.DataFrame:
+    def generate_records(self, num_records: int, **kwargs) -> pl.DataFrame:
         """
         Generate the specified number of records.
         
@@ -208,7 +208,7 @@ class DataGenerator:
             **kwargs: Additional parameters
             
         Returns:
-            pd.DataFrame: Generated records
+            pl.DataFrame: Generated records
         """
         
     def save_to_csv(self, data: pd.DataFrame, filename: str) -> None:
@@ -216,7 +216,7 @@ class DataGenerator:
         Save generated data to CSV file.
         
         Args:
-            data (pd.DataFrame): Data to save
+            data (pl.DataFrame): Data to save
             filename (str): Output filename
         """
 ```
@@ -376,7 +376,7 @@ except Exception as e:
 ### Memory Usage
 
 - **Large Datasets**: For datasets > 100,000 records, consider chunking
-- **DataFrame Operations**: Use efficient pandas operations
+- **DataFrame Operations**: Use efficient Polars operations
 - **Garbage Collection**: Large objects are automatically cleaned up
 
 ### Processing Time
@@ -420,12 +420,12 @@ data = generate_synthetic_data(num_records=100, debug=True)
 ### Data Validation
 
 ```python
-def validate_generated_data(data: pd.DataFrame) -> bool:
+def validate_generated_data(data: pl.DataFrame) -> bool:
     """
     Validate generated data for consistency.
     
     Args:
-        data (pd.DataFrame): Generated data to validate
+        data (pl.DataFrame): Generated data to validate
         
     Returns:
         bool: True if data is valid

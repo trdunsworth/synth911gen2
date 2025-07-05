@@ -15,7 +15,7 @@ from synth911gen import generate_synthetic_data
 data = generate_synthetic_data(num_records=1000)
 
 print(f"Generated {len(data)} records")
-print(f"Columns: {list(data.columns)}")
+print(f"Columns: {data.columns.to_list()}")
 print(data.head())
 ```
 
@@ -67,7 +67,7 @@ print("Generated French and Spanish datasets")
 ### Example 4: Basic Statistics
 
 ```python
-import pandas as pd
+import polars as pl
 
 # Generate data
 data = generate_synthetic_data(num_records=5000)
@@ -75,9 +75,9 @@ data = generate_synthetic_data(num_records=5000)
 # Basic statistics
 print("=== Basic Statistics ===")
 print(f"Total records: {len(data)}")
-print(f"Date range: {data['timestamp'].min()} to {data['timestamp'].max()}")
-print(f"Unique agencies: {data['agency'].nunique()}")
-print(f"Unique incident types: {data['incident_type'].nunique()}")
+print(f"Date range: {data['event_time'].min()} to {data['event_time'].max()}")
+print(f"Unique agencies: {data['agency'].n_unique()}")
+print(f"Unique incident types: {data['problem'].n_unique()}")
 
 # Agency distribution
 print("\n=== Agency Distribution ===")
@@ -86,29 +86,30 @@ print(agency_counts)
 
 # Priority distribution
 print("\n=== Priority Distribution ===")
-priority_counts = data['priority'].value_counts().sort_index()
+priority_counts = data['priority_number'].value_counts().sort(by='priority_number')
 print(priority_counts)
 ```
 
 ### Example 5: Time Analysis
 
 ```python
-import pandas as pd
+import polars as pl
 
 # Generate data
 data = generate_synthetic_data(num_records=1000)
 
 # Convert timestamp to datetime
-data['timestamp'] = pd.to_datetime(data['timestamp'])
+data = data.with_columns(pl.col('event_time').str.strptime(pl.Datetime, '%Y-%m-%d %H:%M:%S').alias('event_time'))
 
 # Extract hour and analyze patterns
-data['hour'] = data['timestamp'].dt.hour
-data['day_of_week'] = data['timestamp'].dt.day_name()
+data = data.with_columns(pl.col('event_time').dt.hour().alias('hour'))
+data = data.with_columns(pl.col('event_time').dt.strftime('%A').alias('day_of_week'))
 
 # Hourly distribution
 print("=== Calls by Hour ===")
-hourly_counts = data['hour'].value_counts().sort_index()
-for hour, count in hourly_counts.items():
+hourly_counts = data['hour'].value_counts().sort(by='hour')
+for row in hourly_counts.iter_rows():
+    hour, count = row
     print(f"{hour:02d}:00 - {count} calls")
 
 # Day of week distribution
@@ -125,12 +126,12 @@ data = generate_synthetic_data(num_records=2000)
 
 # Incident type by agency
 print("=== Incident Types by Agency ===")
-incident_agency = data.groupby(['agency', 'incident_type']).size().unstack(fill_value=0)
+incident_agency = data.group_by(["agency", "problem"]).len().pivot(index="agency", columns="problem", values="len").fill_null(0)
 print(incident_agency)
 
 # Priority by incident type
 print("\n=== Priority by Incident Type ===")
-priority_incident = data.groupby(['incident_type', 'priority']).size().unstack(fill_value=0)
+priority_incident = data.group_by(["problem", "priority_number"]).len().pivot(index="problem", columns="priority_number", values="len").fill_null(0)
 print(priority_incident)
 ```
 
@@ -147,7 +148,7 @@ data = generate_synthetic_data(
 )
 
 print(f"Generated {len(data)} records for LAW and FIRE agencies")
-print(f"Agencies in dataset: {data['agency'].unique()}")
+print(f"Agencies in dataset: {data['agency'].unique().to_list()}")
 ```
 
 ### Example 8: Multiple Dispatchers
@@ -160,8 +161,8 @@ data = generate_synthetic_data(
     output_file="multi_dispatcher.csv"
 )
 
-print(f"Generated {len(data)} records with {data['dispatcher'].nunique()} dispatchers")
-print(f"Dispatcher names: {sorted(data['dispatcher'].unique())}")
+print(f"Generated {len(data)} records with {data['dispatcher'].n_unique()} dispatchers")
+print(f"Dispatcher names: {sorted(data['dispatcher'].unique().to_list())}")
 ```
 
 ### Example 9: Custom Date Ranges
@@ -183,19 +184,19 @@ print(f"Generated {len(data)} records spanning 2023-2024")
 ### Example 10: Save to Different Formats
 
 ```python
-import pandas as pd
+import polars as pl
 
 # Generate data
 data = generate_synthetic_data(num_records=1000)
 
 # Save as CSV
-data.to_csv("dispatch_data.csv", index=False)
+data.write_csv("dispatch_data.csv")
 
 # Save as Excel (requires openpyxl)
-data.to_excel("dispatch_data.xlsx", index=False)
+data.write_excel("dispatch_data.xlsx")
 
 # Save as JSON
-data.to_json("dispatch_data.json", orient="records", indent=2)
+data.write_json("dispatch_data.json")
 
 print("Data saved in multiple formats")
 ```
@@ -203,19 +204,21 @@ print("Data saved in multiple formats")
 ### Example 11: Load and Process Existing Data
 
 ```python
-import pandas as pd
+import polars as pl
 
 # Load existing data
-data = pd.read_csv("computer_aided_dispatch.csv")
+data = pl.read_csv("computer_aided_dispatch.csv")
 
 # Process the data
-data['timestamp'] = pd.to_datetime(data['timestamp'])
-data['date'] = data['timestamp'].dt.date
-data['hour'] = data['timestamp'].dt.hour
+data = data.with_columns(pl.col('event_time').str.strptime(pl.Datetime, '%Y-%m-%d %H:%M:%S').alias('event_time'))
+data = data.with_columns(pl.col('event_time').dt.date().alias('date'))
+data = data.with_columns(pl.col('event_time').dt.hour().alias('hour'))
 
 # Filter for specific date
-june_data = data[data['date'] >= pd.to_datetime('2024-06-01').date()]
-june_data = june_data[june_data['date'] <= pd.to_datetime('2024-06-30').date()]
+june_data = data.filter(
+    (pl.col('date') >= datetime(2024, 6, 1).date())
+    & (pl.col('date') <= datetime(2024, 6, 30).date())
+)
 
 print(f"Found {len(june_data)} records in June 2024")
 ```
@@ -281,25 +284,25 @@ def validate_data(data):
     """Validate generated data for consistency."""
     
     # Check for required columns
-    required_columns = ['incident_id', 'timestamp', 'caller_name', 'location']
+    required_columns = ['call_id', 'event_time', 'call_taker', 'address']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
         print(f"Missing columns: {missing_columns}")
         return False
     
     # Check for duplicate incident IDs
-    if data['incident_id'].duplicated().any():
-        print("Duplicate incident IDs found")
+    if data['call_id'].n_unique() != len(data):
+        print("Duplicate call IDs found")
         return False
     
     # Check for valid priorities
-    if not all(data['priority'].between(1, 5)):
+    if not data['priority_number'].is_between(1, 5).all():
         print("Invalid priority values found")
         return False
     
     # Check for valid agencies
     valid_agencies = ["LAW", "FIRE", "EMS", "RESCUE"]
-    invalid_agencies = data[~data['agency'].isin(valid_agencies)]['agency'].unique()
+    invalid_agencies = data.filter(~pl.col('agency').is_in(valid_agencies))['agency'].unique().to_list()
     if len(invalid_agencies) > 0:
         print(f"Invalid agencies: {invalid_agencies}")
         return False
@@ -321,10 +324,10 @@ def check_data_quality(data):
     print("=== Data Quality Report ===")
     
     # Check for missing values
-    missing_values = data.isnull().sum()
-    if missing_values.sum() > 0:
+    missing_values = data.null_count()
+    if missing_values.sum_horizontal().item() > 0:
         print("Missing values found:")
-        print(missing_values[missing_values > 0])
+        print(missing_values)
     else:
         print("No missing values found")
     
@@ -334,12 +337,12 @@ def check_data_quality(data):
     
     # Check value ranges
     print(f"\nValue ranges:")
-    print(f"Priority: {data['priority'].min()} - {data['priority'].max()}")
-    print(f"Unique agencies: {data['agency'].nunique()}")
-    print(f"Unique incident types: {data['incident_type'].nunique()}")
+    print(f"Priority: {data['priority_number'].min()} - {data['priority_number'].max()}")
+    print(f"Unique agencies: {data['agency'].n_unique()}")
+    print(f"Unique incident types: {data['problem'].n_unique()}")
     
     # Check timestamp range
-    timestamps = pd.to_datetime(data['timestamp'])
+    timestamps = data['event_time']
     print(f"Date range: {timestamps.min()} to {timestamps.max()}")
 
 # Generate and check data quality

@@ -343,7 +343,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Related Projects
 
 - [Faker](https://github.com/joke2k/faker) - Python library for generating fake data
-- [Pandas](https://pandas.pydata.org/) - Data manipulation and analysis
+- [Polars](https://pola.rs/) - Blazingly fast DataFrames library for Rust and Python
 - [Flask](https://flask.palletsprojects.com/) - Web framework for the web interface
 - [Fireduck](https://github.com/tonybaloney/fireduck) - Fast CSV/Parquet/Feather/Arrow file reader for Python
 - [uv](https://github.com/astral-sh/uv) - Extremely fast Python package installer and resolver

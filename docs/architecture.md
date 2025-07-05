@@ -44,7 +44,7 @@ Synth911Gen2 is a synthetic 911 dispatch data generator designed to create reali
 ## 2. Architecture Constraints
 
 - Python 3.11+
-- Pandas, Faker, Flask dependencies
+- Polars, Faker, Flask dependencies
 - Cross-platform (Windows, macOS, Linux)
 
 ### 2.1 Technical Constraints
@@ -52,7 +52,7 @@ Synth911Gen2 is a synthetic 911 dispatch data generator designed to create reali
 | Constraint | Background/motivation |
 |------------|----------------------|
 | Python 3.11+ | Leverage latest language features |
-| Pandas/Faker | Efficient data generation |
+| Polars/Faker | Efficient data generation |
 
 ### 2.2 Organizational Constraints
 
@@ -81,7 +81,7 @@ Synth911Gen2 generates synthetic 911 dispatch data for use in analytics, testing
 - GUI: Tkinter
 - CLI: argparse
 - Web: Flask
-- Data: Pandas DataFrames, CSV/JSON/XLSX output
+- Data: Polars DataFrames, CSV/JSON/XLSX output
 
 ## 4. Solution Strategy
 
@@ -116,7 +116,7 @@ Synth911Gen2 generates synthetic 911 dispatch data for use in analytics, testing
 
 ## 9. Design Decisions
 
-- Use of Pandas and Faker for performance and realism
+- Use of Polars and Faker for performance and realism
 - Modular design for extensibility
 
 ## 10. Quality Requirements

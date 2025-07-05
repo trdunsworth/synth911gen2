@@ -14,7 +14,7 @@ python distribution_analyzer.py synth_seed2.csv
 ## Requirements
 
 - Python 3.11+
-- pandas
+- polars
 - numpy
 - scipy
 

@@ -230,7 +230,7 @@ python webgui.py
 ### Check Dependencies
 ```bash
 # Verify all packages are installed
-python -c "import pandas, numpy, faker, flask; print('All dependencies installed successfully')"
+python -c "import polars, numpy, faker, flask; print('All dependencies installed successfully')"
 ```
 
 ## 🛠️ Troubleshooting

@@ -17,13 +17,13 @@ Synth911Gen2 needs to generate large, realistic synthetic 911 dispatch datasets 
 
 ## Considered Options
 
-- Python with Pandas and Faker
+- Python with Polars and Faker
 - Node.js with custom data generation
 - Java with Spring Boot and custom logic
 
 ## Decision Outcome
 
-**Chosen option:** Python with Pandas and Faker
+**Chosen option:** Python with Polars and Faker
 
 - Well-supported libraries for data manipulation and fake data
 - Community familiarity
@@ -41,11 +41,11 @@ Synth911Gen2 needs to generate large, realistic synthetic 911 dispatch datasets 
 
 ## Pros and Cons of the Options
 
-### Python with Pandas and Faker
+### Python with Polars and Faker
 
 - Good, because of rapid prototyping and strong libraries
 - Good, because of community support
-- Bad, because of Python's GIL and single-threaded performance
+- Good, because of Polars' performance
 
 ### Node.js with custom data generation
 

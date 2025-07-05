@@ -152,26 +152,26 @@ python main.py --cli -n 1000 -o /path/to/your/data/emergency_data.csv
 ### Basic Statistics
 
 ```python
-import pandas as pd
+import polars as pl
 
 # Load your generated data
-df = pd.read_csv('computer_aided_dispatch.csv')
+df = pl.read_csv('computer_aided_dispatch.csv')
 
 # Basic statistics
 print(f"Total records: {len(df)}")
-print(f"Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")
-print(f"Agencies: {df['agency'].unique()}")
-print(f"Incident types: {df['incident_type'].value_counts()}")
+print(f"Date range: {df['event_time'].min()} to {df['event_time'].max()}")
+print(f"Agencies: {df['agency'].unique().to_list()}")
+print(f"Incident types: {df['problem'].value_counts()}")
 ```
 
 ### Time Analysis
 
 ```python
 # Convert timestamp to datetime
-df['timestamp'] = pd.to_datetime(df['timestamp'])
+df = df.with_columns(pl.col('event_time').str.strptime(pl.Datetime, '%Y-%m-%d %H:%M:%S').alias('event_time'))
 
 # Hourly distribution
-hourly_counts = df['timestamp'].dt.hour.value_counts().sort_index()
+hourly_counts = df['event_time'].dt.hour().value_counts().sort(by='event_time')
 print("Calls by hour:")
 print(hourly_counts)
 ```

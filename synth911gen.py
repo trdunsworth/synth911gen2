@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import numpy as np
-import pandas as pd
+import polars as pl
 from faker import Faker
 from faker.providers import DynamicProvider
 
@@ -67,7 +67,7 @@ def sanitize_input(user_input):
     Raises:
         ValueError: If the input contains invalid characters.
     """
-    pattern = r'^[a-zA-Z0-9\s\-]+$'
+    pattern = r'^[a-zA-Z0-9\s-]+$'
     if not re.match(pattern, user_input):
         raise ValueError("Input contains invalid characters. Only letters, numbers, spaces, and hyphens are allowed.")
     return user_input
@@ -476,7 +476,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     ]
 
     # Create DataFrame
-    df_full = pd.DataFrame(
+    df_full = pl.DataFrame(
         {
             "call_id": call_ids_full,
             "agency": agency_choices,
@@ -485,76 +485,42 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     )
 
     # Sort the DataFrame by event_time to ensure chronological order
-    if not isinstance(df_full, pd.DataFrame):
-        raise TypeError("df_full is not a pandas DataFrame!")
-    df_full = df_full.sort_values("event_time").reset_index(drop=True)
+    if not isinstance(df_full, pl.DataFrame):
+        raise TypeError("df_full is not a polars DataFrame!")
+    df_full = df_full.sort("event_time")
 
-    # Add day_of_year column
-    df_full["day_of_year"] = df_full["event_time"].dt.dayofyear
-
-    # Add week_no column
-    df_full["week_no"] = df_full["event_time"].dt.isocalendar().week
-
-    # Add hour column
-    df_full["hour"] = df_full["event_time"].dt.hour
+    # Add various time-based columns
+    df_full = df_full.with_columns([
+        pl.col("event_time").dt.ordinal_day().alias("day_of_year"),
+        pl.col("event_time").dt.week().alias("week_no"),
+        pl.col("event_time").dt.hour().alias("hour"),
+        pl.col("event_time").dt.strftime("%a").str.to_uppercase().alias("dow"),
+    ])
 
     # Add day_night column based on the hour column
-    df_full["day_night"] = df_full["hour"].apply(
-        lambda x: "DAY" if 6 <= x <= 17 else "NIGHT"
+    df_full = df_full.with_columns(
+        pl.when(pl.col("hour").is_between(6, 17))
+        .then(pl.lit("DAY"))
+        .otherwise(pl.lit("NIGHT"))
+        .alias("day_night")
     )
 
-    # Add dow column with the day of the week in 3-character format
-    df_full["dow"] = df_full["event_time"].dt.strftime("%a").str.upper()
+    # Define the expression to determine the shift
+    shift_expr = pl.when(pl.col("week_no") % 2 == 0).then(
+        pl.when((pl.col("day_night") == "DAY") & (pl.col("dow").is_in(["MON", "TUE", "FRI", "SAT"]))).then(pl.lit("A"))
+        .when((pl.col("day_night") == "NIGHT") & (pl.col("dow").is_in(["MON", "TUE", "FRI", "SAT"]))).then(pl.lit("C"))
+        .when((pl.col("day_night") == "DAY") & (pl.col("dow").is_in(["WED", "THU", "SUN"]))).then(pl.lit("B"))
+        .when((pl.col("day_night") == "NIGHT") & (pl.col("dow").is_in(["WED", "THU", "SUN"]))).then(pl.lit("D"))
+        .otherwise(pl.lit("UNKNOWN"))
+    ).otherwise(
+        pl.when((pl.col("day_night") == "DAY") & (pl.col("dow").is_in(["WED", "THU", "SUN"]))).then(pl.lit("A"))
+        .when((pl.col("day_night") == "NIGHT") & (pl.col("dow").is_in(["WED", "THU", "SUN"]))).then(pl.lit("C"))
+        .when((pl.col("day_night") == "DAY") & (pl.col("dow").is_in(["MON", "TUE", "FRI", "SAT"]))).then(pl.lit("B"))
+        .when((pl.col("day_night") == "NIGHT") & (pl.col("dow").is_in(["MON", "TUE", "FRI", "SAT"]))).then(pl.lit("D"))
+        .otherwise(pl.lit("UNKNOWN"))
+    ).alias("shift")
 
-    # Define the function to determine the shift
-    def determine_shift(row: pd.Series) -> str:
-        """
-        Determine the shift based on week number, day_night, and day of the week.
-
-        Args:
-            row (pd.Series): Row of the DataFrame containing week_no, day_night, and dow.
-
-        Returns:
-            str: The shift label (A, B, C, or D).
-        """
-        if row["week_no"] % 2 == 0:
-            if row["day_night"] == "DAY" and row["dow"] in ["MON", "TUE", "FRI", "SAT"]:
-                return "A"
-            elif row["day_night"] == "NIGHT" and row["dow"] in [
-                "MON",
-                "TUE",
-                "FRI",
-                "SAT",
-            ]:
-                return "C"
-            elif row["day_night"] == "DAY" and row["dow"] in ["WED", "THU", "SUN"]:
-                return "B"
-            elif row["day_night"] == "NIGHT" and row["dow"] in ["WED", "THU", "SUN"]:
-                return "D"
-        else:
-            if row["day_night"] == "DAY" and row["dow"] in ["WED", "THU", "SUN"]:
-                return "A"
-            elif row["day_night"] == "NIGHT" and row["dow"] in ["WED", "THU", "SUN"]:
-                return "C"
-            elif row["day_night"] == "DAY" and row["dow"] in [
-                "MON",
-                "TUE",
-                "FRI",
-                "SAT",
-            ]:
-                return "B"
-            elif row["day_night"] == "NIGHT" and row["dow"] in [
-                "MON",
-                "TUE",
-                "FRI",
-                "SAT",
-            ]:
-                return "D"
-        # If no condition matches, return a default value
-        return "UNKNOWN"
-
-    # Apply the function to create the shift column
-    df_full["shift"] = df_full.apply(determine_shift, axis=1)
+    df_full = df_full.with_columns(shift_expr)
 
     # Define the function to determine the shift_part
     def determine_shift_part(hour: Any):
@@ -582,8 +548,9 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
             return "LATE"
 
     # Apply the function to create the shift_part column
-    # Use Series.apply instead of DataFrame.apply for a single-column function
-    df_full["shift_part"] = df_full["hour"].apply(determine_shift_part)
+    df_full = df_full.with_columns(
+        pl.col("hour").map_elements(determine_shift_part, return_dtype=pl.Utf8).alias("shift_part")
+    )
 
     # Assign problem type based on agency
     def assign_problem(agency):
@@ -624,13 +591,15 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     local_fake.add_provider(disposition_provider)
     local_fake.add_provider(rescue_problem_provider)
 
-    df_full["problem"] = df_full["agency"].apply(assign_problem)
+    df_full = df_full.with_columns(
+        pl.col("agency").map_elements(assign_problem, return_dtype=pl.Utf8).alias("problem")
+    )
 
     # Add address column with a street address
-
     local_fake.add_provider(street_address_provider)
+    addresses = [local_fake.street_address() for _ in range(len(df_full))]
+    df_full = df_full.with_columns(pl.Series("address", addresses))
 
-    df_full["address"] = [local_fake.street_address() for _ in range(len(df_full))]
 
     # Create dictionaries to map problems to their priority numbers
     law_priority_map = {problem: priority for problem, priority in LAW_PROBLEMS}
@@ -639,37 +608,15 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     rescue_priority_map = {problem: priority for problem, priority in RESCUE_PROBLEMS}
 
     # Function to assign priority number based on agency and problem
-    def assign_priority(row):
-        """
-        Assign a priority number based on agency and problem.
-
-        Args:
-            row (pd.Series): Row of the DataFrame containing agency and problem.
-
-        Returns:
-            int: The priority number for the call.
-        """
-        agency = row["agency"]
-        problem = row["problem"]
-
-        if agency == "LAW":
-            # Use the law priority map, default to 3 if problem not found
-            return law_priority_map.get(problem, 3)
-        elif agency == "FIRE":
-            # Use the fire priority map, default to 3 if problem not found
-            return fire_priority_map.get(problem, 3)
-        elif agency == "EMS":
-            # Use the ems priority map, default to 3 if problem not found
-            return ems_priority_map.get(problem, 3)
-        elif agency == "RESCUE":
-            # Use the rescue priority map, default to 3 if problem not found
-            return rescue_priority_map.get(problem, 3)
-        else:
-            # Default priority for unknown agency
-            return 3
-
-    # Add priority_number column based on the problem type and agency
-    df_full["priority_number"] = df_full.apply(assign_priority, axis=1)
+    priority_expr = (
+        pl.when(pl.col("agency") == "LAW").then(pl.col("problem").replace_strict(law_priority_map, default=3))
+        .when(pl.col("agency") == "FIRE").then(pl.col("problem").replace_strict(fire_priority_map, default=3))
+        .when(pl.col("agency") == "EMS").then(pl.col("problem").replace_strict(ems_priority_map, default=3))
+        .when(pl.col("agency") == "RESCUE").then(pl.col("problem").replace_strict(rescue_priority_map, default=3))
+        .otherwise(3)
+        .alias("priority_number")
+    )
+    df_full = df_full.with_columns(priority_expr)
 
     # Define a function to assign call_taker based on shift
     def assign_call_taker(shift):
@@ -685,7 +632,9 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         return random.choice(call_taker_names[shift])
 
     # Apply the function to create the call_taker column
-    df_full["call_taker"] = df_full["shift"].apply(assign_call_taker)
+    df_full = df_full.with_columns(
+        pl.col("shift").map_elements(assign_call_taker, return_dtype=pl.Utf8).alias("call_taker")
+    )
 
     # Define the probabilities for each call reception method
     probabilities_reception = [0.55, 0.20, 0.10, 0.10, 0.05]
@@ -694,9 +643,11 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     reception_methods = ["E-911", "PHONE", "OFFICER", "TEXT", "C2C"]
 
     # Generate the call_reception column with the specified distribution
-    df_full["call_reception"] = np.random.choice(
+    reception_choices = np.random.choice(
         reception_methods, size=len(df_full), p=probabilities_reception
     )
+    df_full = df_full.with_columns(pl.Series("call_reception", reception_choices))
+
 
     # Define a function to assign dispatcher based on shift
     def assign_dispatcher(shift):
@@ -712,28 +663,29 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
         return random.choice(dispatcher_names[shift])
 
     # Apply the function to create the dispatcher column
-    df_full["dispatcher"] = df_full["shift"].apply(assign_dispatcher)
+    df_full = df_full.with_columns(
+        pl.col("shift").map_elements(assign_dispatcher, return_dtype=pl.Utf8).alias("dispatcher")
+    )
 
     mu = 3.5
     sigma = 1.2
 
     # Generate columns with distributions
-    df_full["queue_time"] = np.random.lognormal(
+    queue_time = np.random.lognormal(
         mean=mu, sigma=sigma, size=len(df_full)
     ).astype(int)
-    df_full["queue_time"] = (
-        df_full["queue_time"] * 200 / df_full["queue_time"].mean()
+    queue_time = (
+        queue_time * 200 / queue_time.mean()
     ).astype(int)
-    df_full["queue_time"] = df_full["queue_time"].clip(lower=0, upper=90)
+    queue_time = np.clip(queue_time, a_min=0, a_max=90)
 
-    shape, scale = 3.0, 45.0
-    df_full["dispatch_time"] = (
+    dispatch_time = (
         np.random.chisquare(df=5, size=len(df_full)) * 2
     ).astype(int)
-    df_full["dispatch_time"] = df_full["dispatch_time"].clip(lower=5, upper=600)
+    dispatch_time = np.clip(dispatch_time, a_min=5, a_max=600)
 
     # More varied phone_time using gamma
-    df_full["phone_time"] = np.concatenate(
+    phone_time = np.concatenate(
         [
             np.random.exponential(scale=80, size=int(len(df_full) * 0.8)),  # Fast calls
             np.random.gamma(
@@ -741,65 +693,53 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
             ),  # Slower calls
         ]
     ).astype(int)
+    np.random.shuffle(phone_time)
 
     # ack_time describes the time from the first dispatch to the time the unit marks enroute
-    shape, scale = 2.0, 30.0
-    df_full["ack_time"] = np.random.gamma(shape, scale, size=len(df_full)).astype(int)
-    df_full["ack_time"] = df_full["ack_time"].clip(lower=2, upper=40)
+    ack_time = np.random.gamma(2.0, 30.0, size=len(df_full)).astype(int)
+    ack_time = np.clip(ack_time, a_min=2, a_max=40)
 
     # More varied enroute_time using gamma with different parameters
-    shape, scale = 6.0, 70.0
-    df_full["enroute_time"] = np.random.gamma(shape, scale, size=len(df_full)).astype(
+    enroute_time = np.random.gamma(6.0, 70.0, size=len(df_full)).astype(
         int
     )
-    df_full["enroute_time"] = df_full["enroute_time"].clip(lower=300, upper=900)
+    enroute_time = np.clip(enroute_time, a_min=300, a_max=900)
 
     # More varied on_scene_time using gamma with heavy tail
-    shape, scale = 3.0, 800.0
-    df_full["on_scene_time"] = np.random.gamma(shape, scale, size=len(df_full)).astype(
+    on_scene_time = np.random.gamma(3.0, 800.0, size=len(df_full)).astype(
         int
     )
-    df_full["on_scene_time"] = df_full["on_scene_time"].clip(lower=300, upper=7200)
+    on_scene_time = np.clip(on_scene_time, a_min=300, a_max=7200)
 
-    # Add process_time column - sum of queue_time and dispatch_time
-    df_full["process_time"] = df_full["queue_time"] + df_full["dispatch_time"]
+    df_full = df_full.with_columns([
+        pl.Series("queue_time", queue_time),
+        pl.Series("dispatch_time", dispatch_time),
+        pl.Series("phone_time", phone_time),
+        pl.Series("ack_time", ack_time),
+        pl.Series("enroute_time", enroute_time),
+        pl.Series("on_scene_time", on_scene_time),
+    ])
 
-    df_full["total_time"] = (
-        df_full["queue_time"]
-        + df_full["dispatch_time"]
-        + df_full["ack_time"]
-        + df_full["enroute_time"]
-        + df_full["on_scene_time"]
+
+    # Add process_time and total_time columns
+    df_full = df_full.with_columns(
+        (pl.col("queue_time") + pl.col("dispatch_time")).alias("process_time"),
+    ).with_columns(
+        (pl.col("process_time") + pl.col("ack_time") + pl.col("enroute_time") + pl.col("on_scene_time")).alias("total_time")
     )
 
-    # Time stamp for when call was sent to dispatch queue
-    df_full["time_call_queued"] = df_full["event_time"] + pd.to_timedelta(
-        df_full["queue_time"], unit="s"
-    )
-
-    # Time stamp for when call was dispatched to a unit
-    df_full["time_call_dispatched"] = df_full["time_call_queued"] + pd.to_timedelta(
-        df_full["dispatch_time"], unit="s"
-    )
-
-    # Time stamp for when unit acknowledged the call
-    df_full["time_call_acknowledged"] = df_full[
-        "time_call_dispatched"
-    ] + pd.to_timedelta(df_full["ack_time"], unit="s")
-
-    # Time stamp for when phone call was disconnected
-    df_full["time_call_disconnected"] = df_full["event_time"] + pd.to_timedelta(
-        df_full["phone_time"], unit="s"
-    )
-
-    # Time stamp for when unit arrived on scene
-    df_full["time_unit_enroute"] = df_full["time_call_acknowledged"] + pd.to_timedelta(
-        df_full["enroute_time"], unit="s"
-    )
-
-    # Time stamp for close of call
-    df_full["time_call_closed"] = df_full["event_time"] + pd.to_timedelta(
-        df_full["total_time"], unit="s"
+    # Time stamp columns
+    df_full = df_full.with_columns(
+        (pl.col("event_time") + pl.duration(seconds=pl.col("queue_time"))).alias("time_call_queued"),
+        (pl.col("event_time") + pl.duration(seconds=pl.col("phone_time"))).alias("time_call_disconnected"),
+    ).with_columns(
+        (pl.col("time_call_queued") + pl.duration(seconds=pl.col("dispatch_time"))).alias("time_call_dispatched")
+    ).with_columns(
+        (pl.col("time_call_dispatched") + pl.duration(seconds=pl.col("ack_time"))).alias("time_call_acknowledged")
+    ).with_columns(
+        (pl.col("time_call_acknowledged") + pl.duration(seconds=pl.col("enroute_time"))).alias("time_unit_enroute")
+    ).with_columns(
+        (pl.col("event_time") + pl.duration(seconds=pl.col("total_time"))).alias("time_call_closed")
     )
 
     nonlaw_dispositions = [d for d in DISPOSITIONS if d != "ARREST MADE"]
@@ -822,7 +762,10 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
             return random.choice(nonlaw_dispositions)
 
     # Add disposition column with random dispositions
-    df_full["disposition"] = df_full["agency"].apply(assign_disposition)
+    df_full = df_full.with_columns(
+        pl.col("agency").map_elements(assign_disposition, return_dtype=pl.Utf8).alias("disposition")
+    )
+
 
     # List all your datetime columns
     datetime_cols = [
@@ -837,7 +780,7 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
 
     # Format each datetime column as 'YYYY-MM-DD HH:mm:ss'
     for col in datetime_cols:
-        df_full[col] = df_full[col].dt.strftime("%Y-%m-%d %H:%M:%S")
+        df_full = df_full.with_columns(pl.col(col).dt.strftime("%Y-%m-%d %H:%M:%S"))
         
 
     return df_full, call_taker_names, dispatcher_names
@@ -1021,14 +964,14 @@ def main():
     )
 
     # Save the DataFrame to a CSV file
-    df_full.to_csv(output_file, index=False)
+    df_full.write_csv(output_file)
 
     print(f"\nCSV file saved to {output_file}")
     print(f"Total records generated: {len(df_full)}")
 
     # Quick summary statistics of the new columns
     print("\nSummary Statistics for New Columns:")
-    print(df_full[["phone_time", "process_time", "total_time"]].describe())
+    print(df_full.select(["phone_time", "process_time", "total_time"]).describe())
 
     print("\nCall Taker Names per Shift:")
     for shift, names in call_taker_names.items():

@@ -1,6 +1,6 @@
 import pytest
 import os
-import pandas as pd
+import polars as pl
 from synth911gen import generate_911_data
 
 def test_generate_911_data_defaults(tmp_path):
@@ -14,10 +14,10 @@ def test_generate_911_data_defaults(tmp_path):
         selected_agencies=None,
         agency_probabilities=None
     )
-    df.to_csv(output_file, index=False)
+    df.write_csv(output_file)
     # Check file exists and has content
     assert os.path.exists(output_file)
-    df2 = pd.read_csv(output_file)
+    df2 = pl.read_csv(output_file)
     assert len(df2) == 100
     assert set(["call_id", "agency", "event_time"]).issubset(df2.columns)
     # Check call_taker_names and dispatcher_names
@@ -36,14 +36,15 @@ def test_generate_911_data_agency_selection():
         selected_agencies=["LAW", "EMS"],
         agency_probabilities=[0.6, 0.4]
     )
-    assert set(df["agency"]).issubset({"LAW", "EMS"})
-    assert abs(df["agency"].value_counts(normalize=True)["LAW"] - 0.6) < 0.2
+    assert set(df["agency"].unique().to_list()).issubset({"LAW", "EMS"})
+    law_proportion = df.filter(pl.col('agency') == 'LAW').height / df.height
+    assert abs(law_proportion - 0.6) < 0.2
 
 def test_generate_911_data_disposition_logic():
     df, _, _ = generate_911_data(num_records=100, selected_agencies=["LAW", "FIRE"])
     # "ARREST MADE" should not appear for FIRE
-    fire_dispositions = df[df["agency"] == "FIRE"]["disposition"].unique()
+    fire_dispositions = df.filter(pl.col("agency") == "FIRE")["disposition"].unique()
     assert "ARREST MADE" not in fire_dispositions
     # "ARREST MADE" can appear for LAW
-    law_dispositions = df[df["agency"] == "LAW"]["disposition"].unique()
+    law_dispositions = df.filter(pl.col("agency") == "LAW")["disposition"].unique()
     assert "ARREST MADE" in law_dispositions or len(law_dispositions) > 0

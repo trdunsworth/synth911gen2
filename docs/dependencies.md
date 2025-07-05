@@ -74,7 +74,7 @@ N/A
 
 ```json
 {
-  "pandas": "^2.0.0",
+  "polars": "^0.20.0",
   "faker": "^19.0.0",
   "flask": "^2.0.0"
 }
@@ -166,7 +166,7 @@ N/A
 ### Health Checks
 
 ```bash
-python -c "import pandas, faker, flask; print('All dependencies installed')"
+python -c "import polars, faker, flask; print('All dependencies installed')"
 ```
 
 ## References
