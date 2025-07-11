@@ -685,14 +685,11 @@ def generate_911_data(num_records=10000, start_date=None, end_date=None, num_nam
     dispatch_time = np.clip(dispatch_time, a_min=5, a_max=600)
 
     # More varied phone_time using gamma
-    phone_time = np.concatenate(
-        [
-            np.random.exponential(scale=80, size=int(len(df_full) * 0.8)),  # Fast calls
-            np.random.gamma(
-                shape=2, scale=200, size=int(len(df_full) * 0.2)
-            ),  # Slower calls
-        ]
-    ).astype(int)
+    num_fast_calls = int(len(df_full) * 0.8)
+    num_slow_calls = len(df_full) - num_fast_calls
+    fast_calls = np.random.exponential(scale=80, size=num_fast_calls)
+    slow_calls = np.random.gamma(shape=2, scale=200, size=num_slow_calls)
+    phone_time = np.concatenate([fast_calls, slow_calls]).astype(int)
     np.random.shuffle(phone_time)
 
     # ack_time describes the time from the first dispatch to the time the unit marks enroute

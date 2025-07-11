@@ -163,7 +163,7 @@ class SynthTUI(App):
             selected_agencies=params["selected_agencies"],
             agency_probabilities=params["agency_probabilities"],
         )
-        df.to_csv(params["output_file"], index=False)
+        df.write_csv(params["output_file"])
         self.progress.progress = 100
         self.status.update(f"[b green]Done![/b green] File saved to [b]{params['output_file']}[/b]")
 
