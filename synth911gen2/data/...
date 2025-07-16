@@ -1,0 +1,50 @@
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+
+def load_data(frequency):
+    if frequency == 'hourly':
+        return pd.read_csv('data/hour.csv')
+    elif frequency == 'daily':
+        return pd.read_csv('data/day.csv')
+    elif frequency == 'weekly':
+        return pd.read_csv('data/week.csv')
+    elif frequency == 'monthly':
+        return pd.read_csv('data/month.csv')
+    else:
+        raise ValueError("Frequency must be one of: 'hourly', 'daily', 'weekly', 'monthly'")
+
+def generate_call_volumes(start_date, num_rows, frequency):
+    data = load_data(frequency)
+    call_volumes = []
+
+    for i in range(num_rows):
+        if frequency == 'hourly':
+            date = start_date + timedelta(hours=i)
+        elif frequency == 'daily':
+            date = start_date + timedelta(days=i)
+        elif frequency == 'weekly':
+            date = start_date + timedelta(weeks=i)
+        elif frequency == 'monthly':
+            date = start_date + timedelta(days=i*30)  # Approximation for monthly
+        else:
+            raise ValueError("Frequency must be one of: 'hourly', 'daily', 'weekly', 'monthly'")
+
+        volume = random.choices(data['Volume'], weights=data['Weight'], k=1)[0]
+        call_volumes.append({'Date': date, 'Volume': volume})
+
+    return pd.DataFrame(call_volumes)
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Generate realistic inbound call volumes for a 911 center.')
+    parser.add_argument('start_date', type=str, help='Starting date in YYYY-MM-DD format')
+    parser.add_argument('num_rows', type=int, help='Number of rows to generate')
+    parser.add_argument('frequency', type=str, choices=['hourly', 'daily', 'weekly', 'monthly'], help='Frequency of data generation')
+
+    args = parser.parse_args()
+    start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
+    call_volume_data = generate_call_volumes(start_date, args.num_rows, args.frequency)
+    print(call_volume_data)
